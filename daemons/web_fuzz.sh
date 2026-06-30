@@ -1,8 +1,14 @@
 #!/bin/bash
 
+#!/bin/bash
+# ==========================================
+# DAEMON: SHADOW WEB FUZZER (Streaming)
+# ==========================================
+
 run_shadow_web_fuzz() {
     local target=$1
     local port=$2
+    local log_file=$3  # Путь к общему логу передается третьим аргументом
 
     local target_url="http://${target}:${port}"
     if [ "$port" == "443" ]; then
@@ -10,13 +16,23 @@ run_shadow_web_fuzz() {
     fi
 
     local wordlist="/usr/share/wordlists/dirb/common.txt"
-    local json_out="/tmp/blackwall_ffuf_${target}_${port}.json"
-    local nuclei_out="/tmp/blackwall_nuclei_${target}_${port}.txt"
 
-    ffuf -w "$wordlist" -u "$target_url"/FUZZ -of json -o "$json_out" -s > /dev/null 2>&1
+    ffuf -w "$wordlist" -u "$target_url/FUZZ" -s 2>/dev/null | while read -r line; do
+        echo -e "${TXT_SCARLET}[ FFUF:${port} ]${NC} ${TXT_NEON}/${line}${NC}" >> "$log_file"
+    done &
+    local ffuf_pid=$!
 
+    local nuclei_pid=""
     if command -v nuclei >/dev/null 2>&1; then
-        nuclei -u "$target_url" -silent -nc -o "$nuclei_out" > /dev/null 2>&1
+        nuclei -u "$target_url" -silent -nc 2>/dev/null | while read -r line; do
+            echo -e "${TXT_GLITCH_BLUE}[ NUCLEI:${port} ]${NC} ${TXT_CORE}${line}${NC}" >> "$log_file"
+        done &
+        nuclei_pid=$!
+    fi
+
+    wait $ffuf_pid 2>/dev/null
+    if [ -n "$nuclei_pid" ]; then
+        wait $nuclei_pid 2>/dev/null
     fi
 }
 

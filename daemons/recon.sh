@@ -15,6 +15,7 @@ scan_ports() {
     local ip=$1
     local output_file="nmap_${ip}.txt"
     local local_ports=()
+    local async_log="/tmp/blackwall_async_$$.log" > "$async_log"
 
     echo -e "${TXT_DRK_RED}============================================================${NC}"
     echo -e "${TXT_PULSE_RED}[///] INITIATING SYNAPTIC SCAN ON ${TXT_CORE}$ip${NC}"
@@ -40,67 +41,64 @@ scan_ports() {
             echo -ne "\r${TXT_DRK_RED}[ ~ ] Raw stream detect: port ${disc_port}...${NC}\033[K"
 
             if [[ "$disc_port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
-                 STATE[shadow_web_80_started]="true"
-                 run_shadow_web_fuzz "$ip" "80" &
-                 STATE[shadow_web_80_pid]=$!
+                STATE[shadow_web_80_started]="true"
+                run_shadow_web_fuzz "$ip" "80" "$async_log" &
+                STATE[shadow_web_80_pid]=$!
             fi
 
             if [[ "$disc_port" == "443" && "${STATE[shadow_web_443_started]}" == "false" ]]; then
-              STATE[shadow_web_443_started]="true"
-              run_shadow_web_fuzz "$ip" "443" &
-              STATE[shadow_web_443_pid]=$!
+                STATE[shadow_web_443_started]="true"
+                run_shadow_web_fuzz "$ip" "443" "$async_log" &
+                STATE[shadow_web_443_pid]=$!
             fi
         fi
 
-    done < <(nmap -sC -sV -p- -A -Pn -v --min-rate 5000 "$ip" -oN "$output_file" 2>/dev/null)
+    done < <(nmap -sC -sV -p- -A -Pn -v --min-rate 1000 "$ip" -oN "$output_file" 2>/dev/null)
 
     echo -ne "\r\033[K"
 
     local ports_string=$(IFS=, ; echo "${local_ports[*]}")
     STATE[open_ports]="$ports_string"
 
-    echo ""
     if [ ${#local_ports[@]} -gt 0 ]; then
       ai_speak "Target neural network acquired. Data migration to primary matrix - complete."
     else
       ai_speak "You seek the key to a door that does not exist. Typical of your kind."
     fi
 
-    if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
-            echo -e "\n${TXT_DRK_RED}============================================================${NC}"
-            echo -e "${TXT_PULSE_RED}[///] SYNCHRONIZING ASYNC DAEMONS...${NC}"
+if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
+        echo -e "\n${TXT_DRK_RED}============================================================${NC}"
+        echo -e "${TXT_PULSE_RED}[///] SYNCHRONIZING ASYNC DAEMONS...${NC}"
+        echo -e "${TXT_MID_RED}[ i ] Streaming background discoveries in real-time:${NC}\n"
 
-            while kill -0 "${STATE[shadow_web_80_pid]}" 2>/dev/null || kill -0 "${STATE[shadow_web_443_pid]}" 2>/dev/null; do
-                echo -ne "\r${TXT_DRK_RED}[ ~ ] Waiting for background web fuzzers to complete...${NC}\033[K"
-                sleep 0.5
-            done
-            echo -ne "\r\033[K"
+        tail -f -n +1 "$async_log" 2>/dev/null &
+        local tail_pid=$!
 
-            ai_speak "Async streams resolved. Injecting results into main terminal."
+        local spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
+        local spin_idx=0
+        local elapsed=0
+        local tick_counter=0
 
-            for port in 80 443; do
-                local json_out="/tmp/blackwall_ffuf_${ip}_${port}.json"
-                local nuclei_out="/tmp/blackwall_nuclei_${ip}_${port}.txt"
+        while kill -0 "${STATE[shadow_web_80_pid]}" 2>/dev/null || kill -0 "${STATE[shadow_web_443_pid]}" 2>/dev/null; do
+            echo -ne "\r${TXT_DRK_RED}[ ${spinner[spin_idx]} ] Syncing background fuzzers... [Elapsed: ${elapsed}s]${NC}\033[K"
 
-                if [ -f "$json_out" ]; then
-                    echo -e "${TXT_MID_RED}[ i ] BACKGROUND DIRECTORY DISCOVERY (PORT ${port}):${NC}"
+            sleep 0.1
 
-                    while IFS= read -r status && IFS= read -r path; do
-                        local status_color="${TXT_CORE}"
-                        if [[ "$status" == "301" || "$status" == "302" ]]; then status_color="${TXT_MID_RED}"; fi
-                        echo -e "${TXT_SCARLET}[ ++ ]${NC} HTTP ${status_color}${status}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_NEON}/${path}${NC}"
-                    done < <( jq -r '.results[] | select(.status == 200 or .status == 301 or .status == 302) | "\(.status)\n\(.input.FUZZ)"' "$json_out" 2>/dev/null)
+            ((spin_idx = (spin_idx + 1) % 10))
+            ((tick_counter++))
 
-                    rm -f "$json_out"
-                fi
+            if (( tick_counter >= 10 )); then
+                ((elapsed++))
+                tick_counter=0
+            fi
+        done
+        echo -ne "\r\033[K"
 
-                if [ -f "$nuclei_out" ] && [ -s "$nuclei_out" ]; then
-                    echo -e "\n${TXT_GLITCH_BLUE}[ NUCLEI ] VULNERABILITIES DETECTED:${NC}"
-                    cat "$nuclei_out" | while read -r n_line; do
-                        echo -e "  ${TXT_DRK_RED}->${NC} ${TXT_CORE}${n_line}${NC}"
-                    done
-                    rm -f "$nuclei_out"
-                fi
-            done
+        sleep 0.5
+        kill "$tail_pid" 2>/dev/null
+        wait "$tail_pid" 2>/dev/null
+        rm -f "$async_log"
+
+        echo -e "\n${TXT_SCARLET}[*] All background streams resolved.${NC}"
     fi
 }
