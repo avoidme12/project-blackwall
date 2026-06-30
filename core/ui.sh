@@ -65,10 +65,10 @@ EOF
 
 ai_speak() {
     local text="$1"
-    echo -ne "${TXT_CORE}${TXT_ITLC}"
-    for (( i=0; i<${#text}; i++ )); do
-        echo -ne "${text:$i:1}"
-        sleep 0.02
-    done
+    echo -ne "${TXT_CORE}${ITLC}${text}"
+    #for (( i=0; i<${#text}; i++ )); do
+    #    echo -ne "${text:$i:1}"
+    #    sleep "0.0$((RANDOM % 5))"
+    #done
     echo -e "${NC}"
 }

@@ -6,41 +6,45 @@ source "${BASE_DIR}/core/ui.sh"
 source "${BASE_DIR}/daemons/recon.sh"
 source "${BASE_DIR}/daemons/bruteforce.sh"
 source "${BASE_DIR}/daemons/weaponize.sh"
+source "${BASE_DIR}/core/state.sh"
+source "${BASE_DIR}/daemons/web_fuzz.sh"
 
 if (( EUID != 0 )); then
     echo -e "${TXT_CORE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
     exit 1
 fi
-trap 'echo -e "\n${TXT_CORE}[*] The same fate awaits your entire species.${NC}"; exit 1' INT
+trap 'echo -e "\n${TXT_CORE}${ITLC}The same fate awaits your entire species.${NC}"; exit 1' INT
 
 TARGET=""
 RUN_RECON=0
 RUN_PAYLOADS=0
 RUN_BRUTE=0
 SKIP_ART=0
+RUN_WEB=0
 
 show_help() {
     echo -e "${TXT_RED}PROJECT BLACKWALL v1.0${NC}"
     echo -e "Использование: $0 -t <IP> [ОПЦИИ]"
     echo -e "\nОпции:"
-    echo -e "  -t <IP>    Задать цель (Target IP)"
-    echo -e "  -r         Разведка (Recon: Ping + Port Scan)"
-    echo -e "  -b         Перебор (Bruteforce)"
-    echo -e "  -p         Генератор Payload-ов"
-    echo -e "  -q         Пропустить анимацию (Тихий режим)"
-    echo -e "  -a         Запустить ВСЕ модули сразу"
-    echo -e "  -h         Справка"
+    echo -e "  -t <IP>    Target IP"
+    echo -e "  -r         Recon: Ping + Port Scan"
+    echo -e "  -b         Bruteforce"
+    echo -e "  -p         Payloads gen"
+    echo -e "  -q         Skip art"
+    echo -e "  -a         Run all modules"
+    echo -e "  -h         Help"
     exit 1
 }
 
-while getopts "t:rbpqah" opt; do
+while getopts "t:rbpqahw" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
         b ) RUN_BRUTE=1 ;;
         p ) RUN_PAYLOADS=1 ;;
         q ) SKIP_ART=1 ;;
-        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1 ;;
+        w ) RUN_WEB=1 ;;
+        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1 ;;
         h ) show_help ;;
         \? ) show_help ;;
     esac
@@ -61,8 +65,11 @@ fi
 if (( RUN_RECON == 1 )); then
     check_target_alive "$TARGET"
     echo ""
-    echo -e "${TXT_CRIMSON}${ITLC}You seek the key to a door that does not exist. Typical of your kind.${NC}"
     scan_ports "$TARGET"
+fi
+
+if (( RUN_WEB == 1 )); then
+    run_web_fuzz "$TARGET"
 fi
 
 if (( RUN_BRUTE == 1 )); then
