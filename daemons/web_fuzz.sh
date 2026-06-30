@@ -11,31 +11,43 @@ run_shadow_web_fuzz() {
     fi
 
     local wordlist="/usr/share/wordlists/dirb/common.txt"
-    local filter_size=$(curl -s -o /dev/null -H "User-Agent: Mozilla/5.0" "http://${target}:${port}/non_existent_cyka_blyat_path_$$" -w "%{size_download}")
+    local filter_size=$(curl -s -o /dev/null -H "User-Agent: Mozilla/5.0" "http://${target}:${port}/non_existent_path_$$" -w "%{size_download}")
 
     echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Detected baseline wildcard size: ${filter_size} bytes." >> "$log_file"
+    echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Launching FFUF directory scanner..." >> "$log_file"
 
-    ffuf -w "$wordlist" -u "$target_url/FUZZ" -fs "$filter_size" -s 2>/dev/null | while read -r line; do
+    ffuf -w "$wordlist" \
+         -u "$target_url/FUZZ" \
+         -fs "$filter_size" \
+         -t 80 \
+         -timeout 5 \
+         -s 2>/dev/null | while read -r line; do
         echo -e "${TXT_SCARLET}[ FFUF:${port} ]${NC} ${TXT_NEON}/${line}${NC}" >> "$log_file"
     done &
     local ffuf_pid=$!
 
     local nuclei_pid=""
     if command -v nuclei >/dev/null 2>&1; then
+        echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Launching Nuclei (Tech detection)..." >> "$log_file"
+
         nuclei -u "$target_url" \
-               -severity critical,high \
+               -tags tech \
+               -silent -nc \
                -bulk-size 10 \
                -concurrency 10 \
-               -timeout 3 \
-               -silent -nc 2>/dev/null | while read -r line; do
+               -timeout 2 \
+               -me 15s 2>/dev/null | while read -r line; do
             echo -e "${TXT_GLITCH_BLUE}[ NUCLEI:${port} ]${NC} ${TXT_CORE}${line}${NC}" >> "$log_file"
         done &
         nuclei_pid=$!
     fi
 
     wait $ffuf_pid 2>/dev/null
+    echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} FFUF scanning finished." >> "$log_file"
+
     if [ -n "$nuclei_pid" ]; then
         wait $nuclei_pid 2>/dev/null
+        echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Nuclei scanning finished." >> "$log_file"
     fi
 }
 
