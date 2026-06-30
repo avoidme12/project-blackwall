@@ -62,10 +62,12 @@ run_web_fuzz() {
 
     local json_out="/tmp/blackwall_ffuf_$$.json"
     local target_url="http://${target}"
+    local filter_size_web=$(curl -s -o /dev/null "http://${target}/non_existent_directory_test_$$" -w "%{size_download}")
 
     echo -e "\n${TXT_MID_RED}[ i ] BRUTEFORCING DIRECTORIES ON: ${TXT_CORE}${target_url}${NC}"
+    echo -e "${TXT_DRK_RED}[ ~ ] Directory baseline size: ${filter_size_web} bytes.${NC}"
 
-    ffuf -w "$wordlist" -u "$target_url"/FUZZ -of json -o "$json_out" -s > /dev/null 2>&1
+    ffuf -w "$wordlist" -u "$target_url"/FUZZ -fs "$filter_size_web" -of json -o "$json_out" -s > /dev/null 2>&1
 
     if [ -f "$json_out" ]; then
         local found=0
