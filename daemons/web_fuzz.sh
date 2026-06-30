@@ -1,14 +1,9 @@
 #!/bin/bash
 
-#!/bin/bash
-# ==========================================
-# DAEMON: SHADOW WEB FUZZER (Streaming)
-# ==========================================
-
 run_shadow_web_fuzz() {
     local target=$1
     local port=$2
-    local log_file=$3  # Путь к общему логу передается третьим аргументом
+    local log_file=$3
 
     local target_url="http://${target}:${port}"
     if [ "$port" == "443" ]; then
@@ -16,15 +11,23 @@ run_shadow_web_fuzz() {
     fi
 
     local wordlist="/usr/share/wordlists/dirb/common.txt"
+    local filter_size=$(curl -s -o /dev/null -H "User-Agent: Mozilla/5.0" "http://${target}:${port}/non_existent_cyka_blyat_path_$$" -w "%{size_download}")
 
-    ffuf -w "$wordlist" -u "$target_url/FUZZ" -s 2>/dev/null | while read -r line; do
+    echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Detected baseline wildcard size: ${filter_size} bytes." >> "$log_file"
+
+    ffuf -w "$wordlist" -u "$target_url/FUZZ" -fs "$filter_size" -s 2>/dev/null | while read -r line; do
         echo -e "${TXT_SCARLET}[ FFUF:${port} ]${NC} ${TXT_NEON}/${line}${NC}" >> "$log_file"
     done &
     local ffuf_pid=$!
 
     local nuclei_pid=""
     if command -v nuclei >/dev/null 2>&1; then
-        nuclei -u "$target_url" -silent -nc 2>/dev/null | while read -r line; do
+        nuclei -u "$target_url" \
+               -severity critical,high \
+               -bulk-size 10 \
+               -concurrency 10 \
+               -timeout 3 \
+               -silent -nc 2>/dev/null | while read -r line; do
             echo -e "${TXT_GLITCH_BLUE}[ NUCLEI:${port} ]${NC} ${TXT_CORE}${line}${NC}" >> "$log_file"
         done &
         nuclei_pid=$!
