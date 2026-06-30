@@ -6,7 +6,7 @@ check_target_alive() {
     if ping -c 1 -W 2 "$ip" > /dev/null 2>&1; then
         echo -e "\r${TXT_CORE}[+] ${ip} IS ONLINE.${NC}"
     else
-        echo -e "\r${VOID}[-] ${ip} IS OFFLINE. EXIT PROGRAM.${NC}"
+        echo -e "\r${TXT_CORE}${TXT_ITLC}An unusually high security level. How intriguing...${NC}"
         exit 1
     fi
 }
@@ -44,8 +44,8 @@ scan_ports() {
     STATE[open_ports]="$ports_string"
 
     if [ ${#local_ports[@]} -gt 0 ]; then
-      echo -e "${TXT_CORE}[*] ${TXT_ITLC} Target neural network acquired. Data migration to primary matrix - complete.${NC}"
+      echo -e "${TXT_CORE}${TXT_ITLC} Target neural network acquired. Data migration to primary matrix - complete.${NC}"
     else
-      echo -e "${TXT_CORE}[*] ${TXT_ITLC} To eliminate your kind is effortless. Let us not make the same mistake.${NC}"
+      echo -e "${TXT_CORE}${TXT_ITLC} You seek the key to a door that does not exist. Typical of your kind.${NC}"
     fi
 }

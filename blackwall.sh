@@ -61,7 +61,7 @@ fi
 if (( RUN_RECON == 1 )); then
     check_target_alive "$TARGET"
     echo ""
-    echo -e "${TXT_CRIMSON}[*] ${ITLC}You seek the key to a door that does not exist. Typical of your kind.${NC}"
+    echo -e "${TXT_CRIMSON}${ITLC}You seek the key to a door that does not exist. Typical of your kind.${NC}"
     scan_ports "$TARGET"
 fi
 

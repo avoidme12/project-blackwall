@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 ITLC='\033[3m'
 VOID='\033[0m'

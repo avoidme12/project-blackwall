@@ -62,3 +62,13 @@ EOF
     sleep 0.4
     echo -e "\n${TXT_DRK_RED}# DAEMON status: ${TXT_CORE}ONLINE${NC}\n"
 }
+
+ai_speak() {
+    local text="$1"
+    echo -ne "${TXT_CORE}${TXT_ITLC}"
+    for (( i=0; i<${#text}; i++ )); do
+        echo -ne "${text:$i:1}"
+        sleep 0.02
+    done
+    echo -e "${NC}"
+}

@@ -1,1 +1,0 @@
-# Nmap 7.98 scan initiated Mon Jun 29 22:44:22 2026 as: nmap -sC -sV -p- -A -Pn -v --min-rate 5000 -oN nmap_1.1.1.1.txt 1.1.1.1
