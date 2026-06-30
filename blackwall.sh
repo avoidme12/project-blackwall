@@ -13,7 +13,6 @@ if (( EUID != 0 )); then
     echo -e "${TXT_CORE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
     exit 1
 fi
-trap 'echo -e "\n${TXT_CORE}${ITLC}The same fate awaits your entire species.${NC}"; exit 1' INT
 
 TARGET=""
 RUN_RECON=0
@@ -35,6 +34,17 @@ show_help() {
     echo -e "  -h         Help"
     exit 1
 }
+
+clean_exit() {
+    local current_pid=$$
+    rm -f /tmp/blackwall_async_${current_pid}.log 2>/dev/null
+    rm -f /tmp/blackwall_ffuf_${current_pid}.json 2>/dev/null
+    rm -f /tmp/blackwall_vhost_${current_pid}.json 2>/dev/null
+    echo -e "\n${TXT_CORE}${ITLC}The same fate awaits your entire species.${NC}"
+    exit 1
+}
+
+trap clean_exit INT TERM
 
 while getopts "t:rbpqahw" opt; do
     case ${opt} in

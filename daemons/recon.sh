@@ -15,7 +15,8 @@ scan_ports() {
     local ip=$1
     local output_file="nmap_${ip}.txt"
     local local_ports=()
-    local async_log="/tmp/blackwall_async_$$.log" > "$async_log"
+    local async_log="/tmp/blackwall_async_$$.log"
+    > "$async_log"
 
     echo -e "${TXT_DRK_RED}============================================================${NC}"
     echo -e "${TXT_PULSE_RED}[///] INITIATING SYNAPTIC SCAN ON ${TXT_CORE}$ip${NC}"
@@ -66,7 +67,7 @@ scan_ports() {
       ai_speak "You seek the key to a door that does not exist. Typical of your kind."
     fi
 
-if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
+    if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
         echo -e "\n${TXT_DRK_RED}============================================================${NC}"
         echo -e "${TXT_PULSE_RED}[///] SYNCHRONIZING ASYNC DAEMONS...${NC}"
         echo -e "${TXT_MID_RED}[ i ] Streaming background discoveries in real-time:${NC}\n"
@@ -79,7 +80,18 @@ if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_sta
         local elapsed=0
         local tick_counter=0
 
-        while kill -0 "${STATE[shadow_web_80_pid]}" 2>/dev/null || kill -0 "${STATE[shadow_web_443_pid]}" 2>/dev/null; do
+        while true; do
+            local p80="${STATE[shadow_web_80_pid]}"
+            local p443="${STATE[shadow_web_443_pid]}"
+            local running=0
+
+            if [ -n "$p80" ] && kill -0 "$p80" 2>/dev/null; then running=1; fi
+            if [ -n "$p443" ] && kill -0 "$p443" 2>/dev/null; then running=1; fi
+
+            if (( running == 0 )); then
+                break
+            fi
+
             echo -ne "\r${TXT_DRK_RED}[ ${spinner[spin_idx]} ] Syncing background fuzzers... [Elapsed: ${elapsed}s]${NC}\033[K"
 
             sleep 0.1
