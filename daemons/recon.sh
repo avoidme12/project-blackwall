@@ -11,23 +11,31 @@ check_target_alive() {
     fi
 }
 
+
 scan_ports() {
     local ip=$1
     local output_file="nmap_${ip}.txt"
     local local_ports=()
-    local async_log="/tmp/blackwall_async_$$.log"
-    > "$async_log"
+
+    local async_log="/tmp/blackwall_async_$$"
+    rm -f "$async_log"
+    mkfifo "$async_log"
+
+    exec 3<> "$async_log"
 
     echo -e "${TXT_DRK_RED}============================================================${NC}"
     echo -e "${TXT_PULSE_RED}[///] INITIATING SYNAPTIC SCAN ON ${TXT_CORE}$ip${NC}"
-    echo -e "${TXT_MID_RED}[ i ] PROFILE: -sC -sV -p- -A -Pn -v --min-rate 5000${NC}"
+    echo -e "${TXT_MID_RED}[ i ] PROFILE: -sC -sV -p- -A -Pn -v --min-rate 1000${NC}"
     echo -e "${TXT_DRK_RED}============================================================${NC}\n"
+
     STATE[shadow_web_80_started]="false"
     STATE[shadow_web_443_started]="false"
+    STATE[shadow_web_80_pid]=""
+    STATE[shadow_web_443_pid]=""
 
     while IFS= read -r line; do
-        if [[ "$line" =~ ^[0-9]+/tcp[[:space:]]+open ]]; then
-            local port=$(echo "$line" | awk -F'/' '{print $1}')
+        if [[ "$line" =~ ^[[:space:]]*([0-9]+)/tcp[[:space:]]+open ]]; then
+            local port="${BASH_REMATCH[1]}"
             local service=$(echo "$line" | awk '{print $3}')
 
             local_ports+=("$port")
@@ -72,9 +80,6 @@ scan_ports() {
         echo -e "${TXT_PULSE_RED}[///] SYNCHRONIZING ASYNC DAEMONS...${NC}"
         echo -e "${TXT_MID_RED}[ i ] Streaming background discoveries in real-time:${NC}\n"
 
-        tail -f -n +1 "$async_log" 2>/dev/null &
-        local tail_pid=$!
-
         local spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
         local spin_idx=0
         local elapsed=0
@@ -87,6 +92,10 @@ scan_ports() {
 
             if [ -n "$p80" ] && kill -0 "$p80" 2>/dev/null; then running=1; fi
             if [ -n "$p443" ] && kill -0 "$p443" 2>/dev/null; then running=1; fi
+
+            while IFS= read -r -t 0.05 line <&3; do
+                echo -e "\r\033[K${line}"
+            done
 
             if (( running == 0 )); then
                 break
@@ -104,11 +113,13 @@ scan_ports() {
                 tick_counter=0
             fi
         done
+
+        while IFS= read -r -t 0.05 line <&3; do
+            echo -e "\r\033[K${line}"
+        done
         echo -ne "\r\033[K"
 
-        sleep 0.5
-        kill "$tail_pid" 2>/dev/null
-        wait "$tail_pid" 2>/dev/null
+        exec 3<&-
         rm -f "$async_log"
 
         echo -e "\n${TXT_SCARLET}[*] All background streams resolved.${NC}"
