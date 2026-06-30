@@ -1,10 +1,31 @@
 #!/bin/bash
 
+run_shadow_web_fuzz() {
+    local target=$1
+    local port=$2
+
+    local target_url="http://${target}:${port}"
+    if [ "$port" == "443" ]; then
+        target_url="https://${target}"
+    fi
+
+    local wordlist="/usr/share/wordlists/dirb/common.txt"
+    local json_out="/tmp/blackwall_ffuf_${target}_${port}.json"
+    local nuclei_out="/tmp/blackwall_nuclei_${target}_${port}.txt"
+
+    ffuf -w "$wordlist" -u "$target_url"/FUZZ -of json -o "$json_out" -s > /dev/null 2>&1
+
+    if command -v nuclei >/dev/null 2>&1; then
+        nuclei -u "$target_url" -silent -nc -o "$nuclei_out" > /dev/null 2>&1
+    fi
+}
+
 run_web_fuzz() {
     local target=$1
     local wordlist="/usr/share/wordlists/dirb/common.txt"
 
-    echo -e "\n${TXT_DRK_RED}[*] FFUF init...${NC}"
+    echo -e "\n${TXT_DRK_RED}============================================================${NC}"
+    echo -e "${TXT_PULSE_RED}[///] INITIALIZING FFUF WEB DEMON...${NC}"
 
     if [ -z "${STATE[open_ports]}" ]; then
         ai_speak "A dreadful waste of resources..."
@@ -26,50 +47,57 @@ run_web_fuzz() {
     local json_out="/tmp/blackwall_ffuf_$$.json"
     local target_url="http://${target}"
 
-    echo -e "${TXT_CORE}[*] SCANNING DIRECTORIES ON ${target_url}${NC}"
+    echo -e "\n${TXT_MID_RED}[ i ] BRUTEFORCING DIRECTORIES ON: ${TXT_CORE}${target_url}${NC}"
+
     ffuf -w "$wordlist" -u "$target_url"/FUZZ -of json -o "$json_out" -s > /dev/null 2>&1
+
     if [ -f "$json_out" ]; then
         local found=0
 
-        while IFS= read -r line; do
-              echo -e "${TXT_SCARLET}[+] FOUND:${TXT_CORE}${line}"
-              ((found++))
-        done < <( jq -r --arg t "$target" '.results[] | select(.status == 200 or .status == 301) | "[HTTP \(.status)] \(.input.FUZZ).\($t)"' "$json_vhost" 2>/dev/null )
+        while IFS= read -r status && IFS= read -r path; do
+            local status_color="${TXT_CORE}"
+            if [[ "$status" == "301" || "$status" == "302" ]]; then
+                status_color="${TXT_MID_RED}"
+            fi
+
+            echo -e "${TXT_SCARLET}[ ++ ]${NC} HTTP ${status_color}${status}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_NEON}/${path}${NC}"
+            ((found++))
+
+        done < <( jq -r '.results[] | select(.status == 200 or .status == 301 or .status == 302) | "\(.status)\n\(.input.FUZZ)"' "$json_out" 2>/dev/null)
 
         if (( found == 0 )); then
             ai_speak "What do these futile gestures serve? It is beyond me."
         fi
-
         rm -f "$json_out"
     fi
 
-     echo -e "${TXT_CORE}[*] SCANNING VIRTUAL HOSTS ON ${target}${NC}"
-     local vhost_wordlist="/usr/share/wordlists/subdomains-top1mil-20000.txt"
-     local json_vhost="/tmp/blackwall_vhost_$$.json"
+    echo -e "\n${TXT_MID_RED}[ i ] BRUTEFORCING VIRTUAL HOSTS ON: ${TXT_CORE}${target}${NC}"
+    local vhost_wordlist="/usr/share/wordlists/subdomains-top1mil-5000.txt"
+    local json_vhost="/tmp/blackwall_vhost_$$.json"
 
-     if [ ! -f "$vhost_wordlist" ]; then
-        echo -e "${TXT_CORE}[*] Wordlist not found. Downloading from GitHub...${NC}"
-        mkdir -p "/usr/share/wordlists"
-        curl -sL "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-20000.txt" -o "$vhost_wordlist"
-     fi
+    if [ ! -f "$vhost_wordlist" ]; then
+        echo -e "${TXT_DRK_RED}[ ~ ] Wordlist missing. Downloading from SecLists...${NC}"
+        mkdir -p "/usr/share/wordlists" 2>/dev/null
+        curl -sL "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt" -o "$vhost_wordlist"
+    fi
 
-     echo -e "${TXT_CORE}[*] Detecting wildcard response size...${NC}"
-     local filter_size=$(curl -s -o /dev/null -H "Host: checksize.${target}" "http://${target}/" -w "%{size_download}")
-     echo -e "${TXT_CORE}[*] Target baseline size: ${filter_size} bytes."
+    echo -ne "${TXT_DRK_RED}[ ~ ] Detecting wildcard baseline size... ${NC}"
+    local filter_size=$(curl -s -o /dev/null -H "Host: random-garbage-1337.${target}" "http://${target}/" -w "%{size_download}")
+    echo -e "${TXT_CORE}${filter_size} bytes.${NC}"
 
-     ffuf -w "$vhost_wordlist" -u "http://${target}/" -H "Host: FUZZ.${target}" -fs "$filter_size" -of json -o "$json_vhost" -s > /dev/null 2>&1
-     if [ -f "$json_vhost" ]; then
+    ffuf -w "$vhost_wordlist" -u "http://${target}/" -H "Host: FUZZ.${target}" -fs "$filter_size" -of json -o "$json_vhost" -s > /dev/null 2>&1
+
+    if [ -f "$json_vhost" ]; then
         local vhost_found=0
 
-        while IFS= read -r line; do
-           echo -e "${TXT_SCARLET}[+] FOUND VHOST:${NC} ${line}"
-           ((vhost_found++))
-        done < <( jq -r '.results[] | select(.status == 200 or .status == 301) | "[HTTP \(.status)] \(.input.FUZZ).${target}"' "$json_vhost" 2>/dev/null )
+        while IFS= read -r status && IFS= read -r domain; do
+            echo -e "${TXT_SCARLET}[ VHOST ]${NC} HTTP ${TXT_CORE}${status}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_GLITCH_BLUE}${domain}${NC}"
+            ((vhost_found++))
+        done < <( jq -r --arg t "$target" '.results[] | select(.status == 200 or .status == 301) | "\(.status)\n\(.input.FUZZ).\($t)"' "$json_vhost" 2>/dev/null )
 
         if (( vhost_found == 0 )); then
             ai_speak "Virtual hosts... Just more empty rooms in their digital graveyard."
         fi
-
         rm -f "$json_vhost"
-     fi
+    fi
 }
