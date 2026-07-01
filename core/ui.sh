@@ -1,7 +1,7 @@
 #!/bin/bash
 
 render_blackwall() {
-    local ART_CHARS=$(cat << 'EOF_ART'
+local ART_CHARS=$(cat << 'EOF_ART'
                        .                               .                             _                            .   .
                                 _                _                      _  _                                 .    .
                            .      _                                        _    _.        .           _
@@ -16,14 +16,14 @@ _  ::              .   :   _  __                   :   _     -   :     : :  -   
 -     _   : _::     :: =        =  =   _  -= :  =   = == = + =  --= =  -  ==+       -==:  -_  _ ==  :       +== -  =   -        .
   _ _ _  - :     -=    = : ---- ==-==-   =- -=+==+       ==+  = = ===---  =  +=+= == = : :  =     == =  -_ + + - = =  ==-   =_ = _
  :-   _- -=-- -==-=-- -+  -::   + -== - ===+ =   ***  * +++ +   +++++ -===== +  + = -    :=-= :   +  == -:=++++= - =-_=- -: =_ =_
-=- *:_:+++*  ****=+ +=== ===--==+===+-   +=++ ++*******    ###* + *** +++++++*+++=++ +*++ +-+++++** +++==-+ +++  - ==- === -=::= _
-+-**--+* ********+  ===++=====+++++***#*%%# #######*#####%%% %%%## ####***+***############***+*+****+**++-+*  +=--=+++*+++==+::=_
+=- *:_:+++*******=+++=======--==+===+--+++=+++++***********###*++****++++++++*+++=++++*++++-+++++** +++==-+ +++  - ==- === -=::= _
++-**--+* ********+=====++=====+++++***#*%%#########*#####%%%%%%%#######***+***############***+*+****+**++-+*+*+=--=+++*+++==+::=_
 *+*#++*#########******+****++*******##%#%%%@@@%%%%%%%%%%@@@@@@@@%%%%%%##########%%%%%%%####***#**###***+*=******++++++*+*+==*==+--
 %#%####%%%%%%%%@%%%%%%%%%%%%%%%%%%%@@@@%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%%%%%%%%%%%%%%#%%%%%%####%#%###########
 %#%%%%%%%%%%%%%@%%%%%%@@@@@@@@%%@%@@@@@%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%%%%%%%%%%%%%%%%@%%%%%%%%#%#%###%#####
 #+**##############****##%%%###*##%%%%#*#%%@%%%%%%%%%%%@@@@@@@@@@@@%@@%##########%#%%%%%###*****+****++*+****####*****=*+++++*++*++
 *-*****************+=+**###++*****####**######**##*####%%%%@@@@%%%%%%#********#########*#****+--==+=--++++**#******+*-+=+=--+-=+--
-+_-=-==+*+ + *++++++ ==****==+=**##***==+*###***********************++=+++****++****##**#++ ++::==+==+*+*+******+++=+_=--::-=::= :
++_-=-==+*++++*++++++===****==+=**##***==+*###***********************++=+++****++****##**#++ ++::==+==+*+*+******+++=+_=--::-=::= :
 = :=:==++ ++++=+ +=-:--+*    = +  + +==+++ +    + +++***+++++*++ ++=+ ==++*+*++  +=+==  =- ===::= =-+=++ * **+++=-   _ ---:-= _-:
 -_  _   = :---_ :--: ::===  =   +++  ==    += ++ + + ++==  ++++    =    + +++    = =--  =: =  _:  = ==  + +*+ +=-   =_=  : _=:.-:.
  _: ._ =::    _= -::: :=- --  -=+====-   =- -=   += =   ==   ==   =   -- == + =  ==+=  --: -   _ :=  :+===++   +      =   ..-
@@ -40,7 +40,7 @@ _      -  :   _   _.    - :     =_  -     :-  -   -      -   --         =  :-=:-
                                                                    _   .                 .        _
 EOF_ART
 )
-    local ART_COLORS=$(cat << 'EOF_COL'
+local ART_COLORS=$(cat << 'EOF_COL'
 00000000000000000000000100000000000000000000000000000002000000000000000000000000000002000000000000000000000000000010002000000000
 00000000000000000000000000000000300000000000000002000000000000000000000030020000000000000000000000000000000002000020000000000000
 00000000000000000000000000020000003000000000000000000000000000000000000000020000320000000020000000000020000000000000000000000000
@@ -54,16 +54,16 @@ EOF_ART
 02053200003000300240030600000400045500000500000055000055006050605066000500060840600008705054050007530040400000604000000033330204
 50000020004033400000430600000000600y0003005704006000707606080800656060050078a00000004873005300306700400000009770500800050000000020
 0030303005040000046000070404455077568600065056988a000000087800807076755500800a8980670803030060000076060053090805060800765000630603
-0350003605754057757560680044400080668050877907000ccd00d0baa0a0009898906688880b00907060000474603000800870647ab9a6050762750540730720
-850c334ab9f00ddfd8a087670776656798779500098a80abeggdeeg0000llkg0b0edc098999abc9aa7890bbaa0969a88bcb09aa67580a990050874077604833703
-96dg54ae0egfdddfda00878b98877889a9acghhcpoo0onlkikkhhiklnqrr0rrphi0lljieedbcefiijilmllmljjeccbebdddcacd8a69c0097657888baa966a44730
-dafj9ahlllkijlkkgeecdcbecccbbccefefhlnpmssstttssppp0qrsstuvvvvvtpppssrnljjiikjlmooqqpppnlmigefifhhhhff0bc7dfdcdcb9aab9dbca77c76a55
-plp0mnnqqprrrsstrq0pppqsrrrqqrrssssttutsvvvvvvvvuuuuuuuuuvv0vvvvuuuvvvututtttuuuvuvvvvvvuutsrs0qrrrrqqqppoqrrqooonnnolomnmkkniilhh
-rmosrrr0stssrssttrrqrstuuuvtttsttttttttsvvvvvvvvuuuuuuvvvvvvvvvvvvvvvvuuuutuuu0vvuvvvvvuvuttssrrrrsrqrrqqqsstrrrqopopmpnonllolknjj
-hbegiihiljjjhimmnhgfhfklopqjijhjloqppjhlrs0srqpppoopqsuuuvvvvvvvut0uurmllkllkmmnoopppppinhggfe0aedfcabcbcdgfjhiihcdce7d0ba99daac99
-d50ccdddfeddcdefecc869efjjkbacdeg0ljjjddjklliihghhhijkmopsttutttsqrrpkedccdfehhi0jkllllfkfedca5587a756989bedhgggfccbd4a79755b56855
-9357587aca090baa9bb9078dfcf77a7ddijggc67afjjihfeedccdefefgfggggecdcc0a88bad0cdabedffhhgciba0a84477967acabbc00c0d09a8a2846435843604
-70474669a099a9680885455bd000080a0090a888890a0000b0babccbbbbbbcbb0a8890779acbcb900978780075077634708688a90c0eea9b650002056446803640
+0350003605754057757560680044400080668657877907000ccd00d0baa0a000989890668888bb98907060000474603000800870647ab9a6050762750540730720
+858c334ab9fdfddfd8a887670776656798779589898a88abeggdeeggeggllkggbgedcd98999abc9aa7898bhaa8969a88bcbc9aa67588a990050874077604833703
+96dg54aedegfdddfda87878b98877889a9acghhcpoooonlkikkhhiklnqrrrrrphiilljieedbcefiijilmllmljjeccbebdddcacd8a69c0097657888baa966a44730
+dafj9ahlllkijlkkgeecdcbecccbbccefefhlnpmssstttsspppqqrsstuvvvvvtpppssrnljjiikjlmooqqpppnlmigefifhhhhfffbc7dfdcdcb9aab9dbca77c76a55
+plppmnnqqprrrsstrqppppqsrrrqqrrssssttutsvvvvvvvvuuuuuuuuuvvvvvvvuuuvvvututtttuuuvuvvvvvvuutsrssqrrrrqqqppoqrrqooonnnolomnmkkniilhh
+rmosrrrsstssrssttrrqrstuuuvtttsttttttttsvvvvvvvvuuuuuuvvvvvvvvvvvvvvvvuuuutuuuuvvuvvvvvuvuttssrrrrsrqrrqqqsstrrrqopopmpnonllolknjj
+hbegiihiljjjhimmnhgfhfklopqjijhjloqppjhlrsssrqpppoopqsuuuvvvvvvvuttuurmllkllkmmnoopppppinhggfeeaedfcabcbcdgfjhiihcdce7d0ba99daac99
+d50ccdddfeddcdefecc869efjjkbacdegoljjjddjklliihghhhijkmopsttutttsqrrpkedccdfehhiijkllllfkfedca5587a756989bedhgggfccbd4a79755b56855
+9357587aca090baa9bb9078dfcf77a7ddijggc67afjjihfeedccdefefgfggggecdccaa88bad0cdabedffhhgciba0a84477967acabbc00c0d09a8a2846435843604
+70474669a099a9680885455bd000080a0090a888890a0000b0babccbbbbbbcbb0a8897779acbcb900978780075077634708688a90c0eea9b650002056446803640
 53002000704555304554034766007000a8900770000970aa08080997800989800006000090aaa000060756006406003400706800909cb098500082700303832642
 03402206440000270544404750550067877765000650580009706000770008800060005606809070066970066305000303600486769a000900000070002140000
 320000050000030604303006040354470000633300550070076000660060000000606045650006576056550053555000500003040009078603507055020000004
