@@ -11,7 +11,6 @@ check_target_alive() {
     fi
 }
 
-
 scan_ports() {
     local ip=$1
     local output_file="nmap_${ip}.txt"
@@ -20,12 +19,11 @@ scan_ports() {
     local async_log="/tmp/blackwall_async_$$"
     rm -f "$async_log"
     mkfifo "$async_log"
-
     exec 3<> "$async_log"
 
     echo -e "${TXT_DRK_RED}============================================================${NC}"
     echo -e "${TXT_PULSE_RED}[///] INITIATING SYNAPTIC SCAN ON ${TXT_CORE}$ip${NC}"
-    echo -e "${TXT_MID_RED}[ i ] PROFILE: -sC -sV -p- -A -Pn -v --min-rate 1000${NC}"
+    echo -e "${TXT_MID_RED}[ i ] PHASE 1: Fast Port Discovery (Rate: 1500/s)${NC}"
     echo -e "${TXT_DRK_RED}============================================================${NC}\n"
 
     STATE[shadow_web_80_started]="false"
@@ -34,45 +32,50 @@ scan_ports() {
     STATE[shadow_web_443_pid]=""
 
     while IFS= read -r line; do
-        if [[ "$line" =~ ^[[:space:]]*([0-9]+)/tcp[[:space:]]+open ]]; then
+        if [[ "$line" =~ Discovered[[:space:]]+open[[:space:]]+port[[:space:]]+([0-9]+)/tcp ]]; then
             local port="${BASH_REMATCH[1]}"
-            local service=$(echo "$line" | awk '{print $3}')
 
             local_ports+=("$port")
-            echo -e "\r\033[K${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} SVC: ${TXT_NEON}${service}${NC}"
+            echo -e "\r\033[K${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} SVC: ${TXT_NEON}discovered${NC}"
 
-        elif [[ "$line" =~ ^"OS details:" ]] || [[ "$line" =~ ^"Running:" ]]; then
-            local os_info="${line#*: }"
-            echo -e "\r\033[K${TXT_GLOW}[ OS ]${NC} TARGET ARCHITECTURE: ${TXT_CORE}${os_info}${NC}"
-
-        elif [[ "$line" =~ ^Discovered[[:space:]]+open[[:space:]]+port[[:space:]]+([0-9]+)/tcp ]]; then
-            local disc_port="${BASH_REMATCH[1]}"
-            echo -ne "\r${TXT_DRK_RED}[ ~ ] Raw stream detect: port ${disc_port}...${NC}\033[K"
-
-            if [[ "$disc_port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
+            if [[ "$port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
                 STATE[shadow_web_80_started]="true"
                 run_shadow_web_fuzz "$ip" "80" "$async_log" &
                 STATE[shadow_web_80_pid]=$!
             fi
 
-            if [[ "$disc_port" == "443" && "${STATE[shadow_web_443_started]}" == "false" ]]; then
+            if [[ "$port" == "443" && "${STATE[shadow_web_443_started]}" == "false" ]]; then
                 STATE[shadow_web_443_started]="true"
                 run_shadow_web_fuzz "$ip" "443" "$async_log" &
                 STATE[shadow_web_443_pid]=$!
             fi
         fi
-
-    done < <(nmap -sC -sV -p- -A -Pn -v --min-rate 1000 "$ip" -oN "$output_file" 2>/dev/null)
+    done < <(nmap -p- --min-rate 1500 -Pn -v "$ip" 2>/dev/null)
 
     echo -ne "\r\033[K"
 
-    local ports_string=$(IFS=, ; echo "${local_ports[*]}")
-    STATE[open_ports]="$ports_string"
-
     if [ ${#local_ports[@]} -gt 0 ]; then
-      ai_speak "Target neural network acquired. Data migration to primary matrix - complete."
+        local ports_string=$(IFS=, ; echo "${local_ports[*]}")
+        STATE[open_ports]="$ports_string"
+
+        echo -e "\n${TXT_MID_RED}[ i ] PHASE 2: Launching Deep Scan on open ports: ${TXT_CORE}${ports_string}${NC}"
+
+        nmap -sC -sV -p"$ports_string" "$ip" -oN "$output_file" > /dev/null 2>&1
+
+        echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}"
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]]*([0-9]+)/tcp[[:space:]]+open[[:space:]]+([^[:space:]]+)[[:space:]]*(.*) ]]; then
+                local port="${BASH_REMATCH[1]}"
+                local service="${BASH_REMATCH[2]}"
+                local version="${BASH_REMATCH[3]}"
+                echo -e "${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_NEON}${service}${NC} (${TXT_MID_RED}${version}${NC})"
+            fi
+        done < "$output_file"
+        echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}\n"
+
+        ai_speak "Target neural network acquired. Data migration to primary matrix - complete."
     else
-      ai_speak "You seek the key to a door that does not exist. Typical of your kind."
+        ai_speak "You seek the key to a door that does not exist. Typical of your kind."
     fi
 
     if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then

@@ -7,6 +7,7 @@ source "${BASE_DIR}/daemons/recon.sh"
 source "${BASE_DIR}/daemons/bruteforce.sh"
 source "${BASE_DIR}/daemons/weaponize.sh"
 source "${BASE_DIR}/core/state.sh"
+source "${BASE_DIR}/core/dns.sh"
 source "${BASE_DIR}/daemons/web_fuzz.sh"
 
 if (( EUID != 0 )); then
@@ -37,6 +38,7 @@ show_help() {
 
 clean_exit() {
     local current_pid=$$
+    cleanup_hosts
     rm -f /tmp/blackwall_async_${current_pid} 2>/dev/null
     rm -f /tmp/blackwall_ffuf_${current_pid}.json 2>/dev/null
     rm -f /tmp/blackwall_vhost_${current_pid}.json 2>/dev/null

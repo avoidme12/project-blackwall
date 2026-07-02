@@ -125,6 +125,7 @@ run_web_fuzz() {
 
         while IFS= read -r status && IFS= read -r domain; do
             echo -e "${TXT_SCARLET}[ VHOST ]${NC} HTTP ${TXT_CORE}${status}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_GLITCH_BLUE}${domain}${NC}"
+            add_to_hosts "$target" "$domain"
             ((vhost_found++))
         done < <( jq -r --arg t "$target" '.results[] | select(.status == 200 or .status == 301) | "\(.status)\n\(.input.FUZZ).\($t)"' "$json_vhost" 2>/dev/null )
 
