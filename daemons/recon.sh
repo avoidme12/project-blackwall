@@ -2,9 +2,9 @@
 
 check_target_alive() {
     local ip=$1
-    echo -e "${TXT_DRK_RED}[///] MX:// BLACKWALL SYSTEM BOOT: BOOTP BROADCAST IN PROGRESS...${NC}"
+    echo -e "${TXT_DRK_RED}[///] BOOTP BROADCAST 1... INITIATING CONSOLE DHCP SWEEP${NC}"
     if ping -c 1 -W 2 "$ip" > /dev/null 2>&1; then
-        echo -e "${TXT_SCARLET}[ ++ ] ${TXT_DRK_RED}DHCP CLIENT BOUND TO ADDRESS ${TXT_CORE}${ip}${NC}"
+        echo -e "${TXT_SCARLET}[ ++ ]${NC} DHCP CLIENT BOUND TO ADDRESS ${TXT_CORE}${ip}${NC}"
     else
         echo -e "\n${TXT_CORE}${ITLC}An unusually high security level. How intriguing...${NC}\n"
         exit 1
@@ -21,11 +21,6 @@ scan_ports() {
     mkfifo "$async_log"
     exec 3<> "$async_log"
 
-    echo -e "${TXT_DRK_RED}============================================================${NC}"
-    echo -e "${TXT_PULSE_RED}[///] USING LYNX_ETHERNET DEVICE: SCANNING TARGET SUBNET...${NC}"
-    echo -e "${TXT_MID_RED}[ i ] TFTP FROM SERVER: INIT DIAGNOSTIC STREAM ON CORE DEVISION...${NC}"
-    echo -e "${TXT_DRK_RED}============================================================${NC}\n"
-
     STATE[shadow_web_80_started]="false"
     STATE[shadow_web_443_started]="false"
     STATE[shadow_web_80_pid]=""
@@ -36,48 +31,11 @@ scan_ports() {
     STATE[shadow_share_445_pid]=""
     STATE[shadow_share_2049_pid]=""
 
-    while IFS= read -r line; do
-        if [[ "$line" =~ Discovered[[:space:]]+open[[:space:]]+port[[:space:]]+([0-9]+)/tcp ]]; then
-            local port="${BASH_REMATCH[1]}"
-
-            local_ports+=("$port")
-            echo -e "\r\033[K${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} SVC: ${TXT_NEON}discovered${NC}"
-
-            if [[ "$port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
-                STATE[shadow_web_80_started]="true"
-                run_shadow_web_fuzz "$ip" "80" "$async_log" &
-                STATE[shadow_web_80_pid]=$!
-            fi
-
-            if [[ "$port" == "443" && "${STATE[shadow_web_443_started]}" == "false" ]]; then
-                STATE[shadow_web_443_started]="true"
-                run_shadow_web_fuzz "$ip" "443" "$async_log" &
-                STATE[shadow_web_443_pid]=$!
-            fi
-
-            if [[ "$port" == "445" && "${STATE[shadow_share_445_started]}" == "false" ]]; then
-                STATE[shadow_share_445_started]="true"
-                run_shadow_share_enum "$ip" "445" "$async_log" &
-                STATE[shadow_share_445_pid]=$!
-            fi
-
-            if [[ "$port" == "2049" && "${STATE[shadow_share_2049_started]}" == "false" ]]; then
-                STATE[shadow_share_2049_started]="true"
-                run_shadow_share_enum "$ip" "2049" "$async_log" &
-                STATE[shadow_share_2049_pid]=$!
-            fi
-        fi
-    done < <(nmap -p- --min-rate 1500 -Pn -v "$ip" 2>/dev/null)
-
-    echo -ne "\r\033[K"
-
-    if [ ${#local_ports[@]} -gt 0 ]; then
-        local ports_string=$(IFS=, ; echo "${local_ports[*]}")
-        STATE[open_ports]="$ports_string"
-
-        echo -e "\n${TXT_MID_RED}[ i ] UNCOMPRESSING KERNEL IMAGE ... OK. INITIATING PHASE 2 DEEP SCAN...${NC}"
-
-        nmap -sC -sV -p"$ports_string" "$ip" -oN "$output_file" > /dev/null 2>&1
+    if [ -f "$output_file" ] && [ -s "$output_file" ]; then
+        echo -e "${TXT_DRK_RED}============================================================${NC}"
+        echo -e "${TXT_PULSE_RED}[///] TARGET CACHE DETECTED: RE-USING PREVIOUS DIGITIZATION MAP...${NC}"
+        echo -e "${TXT_MID_RED}[ i ] READING LOCAL DUMP: ${output_file}...${NC}"
+        echo -e "${TXT_DRK_RED}============================================================${NC}\n"
 
         echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}"
         while IFS= read -r line; do
@@ -85,26 +43,121 @@ scan_ports() {
                 local port="${BASH_REMATCH[1]}"
                 local service="${BASH_REMATCH[2]}"
                 local version="${BASH_REMATCH[3]}"
+
+                local_ports+=("$port")
                 echo -e "${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_NEON}${service}${NC} (${TXT_MID_RED}${version}${NC})"
+
+                if [[ "$port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
+                    STATE[shadow_web_80_started]="true"
+                    run_shadow_web_fuzz "$ip" "80" "$async_log" &
+                    STATE[shadow_web_80_pid]=$!
+                fi
+
+                if [[ "$port" == "443" && "${STATE[shadow_web_443_started]}" == "false" ]]; then
+                    STATE[shadow_web_443_started]="true"
+                    run_shadow_web_fuzz "$ip" "443" "$async_log" &
+                    STATE[shadow_web_443_pid]=$!
+                fi
+
+                if [[ "$port" == "445" && "${STATE[shadow_share_445_started]}" == "false" ]]; then
+                    STATE[shadow_share_445_started]="true"
+                    run_shadow_share_enum "$ip" "445" "$async_log" &
+                    STATE[shadow_share_445_pid]=$!
+                fi
+
+                if [[ "$port" == "2049" && "${STATE[shadow_share_2049_started]}" == "false" ]]; then
+                    STATE[shadow_share_2049_started]="true"
+                    run_shadow_share_enum "$ip" "2049" "$async_log" &
+                    STATE[shadow_share_2049_pid]=$!
+                fi
             fi
         done < "$output_file"
         echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}\n"
 
-        echo -e "${TXT_CORE}BYTES TRANSFERRED - 11676665 (B22BF9 HEX)"
-        echo -e "## BLACKWALL FORMAT IMAGE BOOTED FROM LEGACY ADDRESS 0X12000000"
-        echo -e "IMAGE NAME: MILITECH SYSTEM-3.10.10"
+        local ports_string=$(IFS=, ; echo "${local_ports[*]}")
+        STATE[open_ports]="$ports_string"
+
         ai_speak "Target neural network acquired. Data migration to primary matrix - complete."
+
     else
-        ai_speak "You seek the key to a door that does not exist. Typical of your kind."
+        echo -e "${TXT_DRK_RED}============================================================${NC}"
+        echo -e "${TXT_PULSE_RED}[///] USING LYNX_ETHERNET DEVICE: BOOTING NETWORK UTILITY...${NC}"
+        echo -e "${TXT_MID_RED}[ i ] TFTP FROM SERVER ${ip}: SYSTEM DIAGNOSTIC RUNNING...${NC}"
+        echo -e "${TXT_DRK_RED}============================================================${NC}\n"
+
+        while IFS= read -r line; do
+            if [[ "$line" =~ Discovered[[:space:]]+open[[:space:]]+port[[:space:]]+([0-9]+)/tcp ]]; then
+                local port="${BASH_REMATCH[1]}"
+
+                local_ports+=("$port")
+                echo -e "\r\033[K${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} SVC: ${TXT_NEON}discovered${NC}"
+
+                if [[ "$port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
+                    STATE[shadow_web_80_started]="true"
+                    run_shadow_web_fuzz "$ip" "80" "$async_log" &
+                    STATE[shadow_web_80_pid]=$!
+                fi
+
+                if [[ "$port" == "443" && "${STATE[shadow_web_443_started]}" == "false" ]]; then
+                    STATE[shadow_web_443_started]="true"
+                    run_shadow_web_fuzz "$ip" "443" "$async_log" &
+                    STATE[shadow_web_443_pid]=$!
+                fi
+
+                if [[ "$port" == "445" && "${STATE[shadow_share_445_started]}" == "false" ]]; then
+                    STATE[shadow_share_445_started]="true"
+                    run_shadow_share_enum "$ip" "445" "$async_log" &
+                    STATE[shadow_share_445_pid]=$!
+                fi
+
+                if [[ "$port" == "2049" && "${STATE[shadow_share_2049_started]}" == "false" ]]; then
+                    STATE[shadow_share_2049_started]="true"
+                    run_shadow_share_enum "$ip" "2049" "$async_log" &
+                    STATE[shadow_share_2049_pid]=$!
+                fi
+            fi
+        done < <(nmap -p- --min-rate 1500 -Pn -v "$ip" 2>/dev/null)
+
+        echo -ne "\r\033[K"
+
+        if [ ${#local_ports[@]} -gt 0 ]; then
+            local ports_string=$(IFS=, ; echo "${local_ports[*]}")
+            STATE[open_ports]="$ports_string"
+
+            echo -e "\n${TXT_MID_RED}[ i ] UNCOMPRESSING KERNEL IMAGE ... OK. INITIATING PHASE 2 DEEP SCAN...${NC}"
+
+            nmap -sC -sV -p"$ports_string" "$ip" -oN "$output_file" > /dev/null 2>&1
+
+            echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}"
+            while IFS= read -r line; do
+                if [[ "$line" =~ ^[[:space:]]*([0-9]+)/tcp[[:space:]]+open[[:space:]]+([^[:space:]]+)[[:space:]]*(.*) ]]; then
+                    local port="${BASH_REMATCH[1]}"
+                    local service="${BASH_REMATCH[2]}"
+                    local version="${BASH_REMATCH[3]}"
+                    echo -e "${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_NEON}${service}${NC} (${TXT_MID_RED}${version}${NC})"
+                fi
+            done < "$output_file"
+            echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}"
+            echo -e "${TXT_CORE}BYTES TRANSFERRED - 11676665 (B22BF9 HEX)"
+            echo -e "## BLACKWALL FORMAT IMAGE BOOTED FROM LEGACY ADDRESS 0X12000000"
+            echo -e "IMAGE NAME: MILITECH SYSTEM-3.10.10"
+            echo -e "IMAGE TYPE: ARM MILITECH SYSTEM KERNEL IMAGE (LZO COMPRESSED)"
+            echo -e "LOAD ADDRESS: 00008000   ENTRY POINT: 00008000"
+            echo -e "VERIFYING CHECKSUM .. OK"
+            echo -e "LOADING RAMDISK TO 05008000, END 053F6800 ... OK"
+            echo -e "LOADING DEVICE TREE TO 05000000, END 050073FB ... OK"
+            echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}\n"
+
+            ai_speak "Target neural network acquired. Data migration to primary matrix - complete."
+        else
+            ai_speak "You seek the key to a door that does not exist. Typical of your kind."
+        fi
     fi
 
     if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" || "${STATE[shadow_share_445_started]}" == "true" || "${STATE[shadow_share_2049_started]}" == "true" ]]; then
         echo -e "\n${TXT_DRK_RED}============================================================${NC}"
         echo -e "${TXT_PULSE_RED}[///] MX:// REALLOCATING RESOURCES TO BACKGROUND DATA STREAMS...${NC}"
-        echo -e "${TXT_MID_RED}[ i ] Streaming background discoveries in real-time:${NC}\n"
-
-        tail -f -n +1 "$async_log" 2>/dev/null &
-        local tail_pid=$!
+        echo -e "${TXT_MID_RED}[ i ] FLAT DEVICE TREE START ADDR - 0X1281E800, LEN - 0X43F9${NC}\n"
 
         local spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
         local spin_idx=0
@@ -132,7 +185,7 @@ scan_ports() {
                         "FFUF:80" | "FFUF:443" )
                             echo -e "\r\033[K${TXT_SCARLET}[ FFUF:${key#*:} ]${NC} ${TXT_NEON}/${data}${NC}"
                             ;;
-                        "INFO:80" | "INFO:443" )
+                        "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" )
                             echo -e "\r\033[K${TXT_DRK_RED}[ INFO:${key#*:} ]${NC} ${TXT_MID_RED}${data}${NC}"
                             ;;
                         "NUCLEI:80" | "NUCLEI:443" )
@@ -161,16 +214,15 @@ scan_ports() {
                                     echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC}"
                                 fi
 
-                                if [[ "$template" =~ (craft-cms|nginx|apache|wordpress|drupal|joomla|php) ]]; then
-                                    local query="${BASH_REMATCH[1]}"
+                                local query=$(echo "$template" | sed -E 's/-(detect|version|eol|service|server|config|detection)//g')
+                                if [[ "$query" =~ (craft|nginx|apache|ssh|openssh|smb|nfs|ftp|vsftpd|mysql|oracle|tomcat|jenkins|webmin|drupal|wordpress|joomla|php) ]]; then
                                     if command -v searchsploit >/dev/null 2>&1; then
-                                        echo -e "\r\033[K${TXT_GLITCH_BLUE}[ MX:// ]${NC} ${TXT_DRK_RED}SEARCHSPLOIT: LOCAL EXPLOITS MATCHING '${query}':${NC}"
-                                        searchsploit "$query" 2>/dev/null | grep -E '\.py|\.txt|\.sh' | head -n 3 | while read -r exp; do
-                                            echo -e "\r\033[K  ${TXT_DRK_RED}->${NC} ${TXT_CORE}${exp}${NC}"
+                                        echo -e "\r\033[K${TXT_GLITCH_BLUE}[ MX:// ]${NC} ${TXT_DRK_RED}Exploit-DB records for '${query}':${NC}"
+                                        searchsploit "$query" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while read -r s_line; do
+                                            echo -e "\r\033[K  ${TXT_DRK_RED}->${NC} ${TXT_CORE}${s_line}${NC}"
                                         done
                                     fi
                                 fi
-
                             else
                                 echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${TXT_CORE}${data}${NC}"
                             fi
@@ -183,6 +235,7 @@ scan_ports() {
                     echo -e "\r\033[K${line}"
                 fi
             done
+
             if (( running == 0 )); then
                 break
             fi

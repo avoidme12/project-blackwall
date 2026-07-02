@@ -61,7 +61,8 @@ run_web_fuzz() {
     local wordlist="/usr/share/wordlists/dirb/common.txt"
 
     echo -e "\n${TXT_DRK_RED}============================================================${NC}"
-    echo -e "${TXT_PULSE_RED}[///] INITIALIZING FFUF WEB DEMON...${NC}"
+    echo -e "${TXT_PULSE_RED}[///] BOOTING TRANS-NET FUZZER ON INTERFACE LYNX_ETHERNET...${NC}"
+    echo -e "${TXT_DRK_RED}============================================================${NC}\n"
 
     if [ -z "${STATE[open_ports]}" ]; then
         ai_speak "A dreadful waste of resources..."

