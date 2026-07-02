@@ -4,7 +4,7 @@ check_target_alive() {
     local ip=$1
     echo -e "${TXT_DRK_RED}[///] BOOTP BROADCAST 1... INITIATING CONSOLE DHCP SWEEP${NC}"
     if ping -c 1 -W 2 "$ip" > /dev/null 2>&1; then
-        echo -e "${TXT_SCARLET}[ ++ ] DHCP CLIENT BOUND TO ADDRESS ${TXT_CORE}${ip}${NC}"
+        echo -e "${TXT_SCARLET}[ ++ ]${NC} DHCP CLIENT BOUND TO ADDRESS ${TXT_CORE}${ip}${NC}"
     else
         echo -e "\n${TXT_CORE}${ITLC}An unusually high security level. How intriguing...${NC}\n"
         exit 1
@@ -212,20 +212,29 @@ scan_ports() {
                                     echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_CORE}${clean_extra}${NC}"
                                 else
                                     echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC}"
+                               fi
+
+                                local version_query=""
+                                if [[ "$clean_extra" =~ ([0-9]+\.[0-9]+) ]]; then
+                                    version_query="${BASH_REMATCH[1]}"
                                 fi
 
                                 local software=""
                                 if [[ "$template" =~ (craft-cms|craftcms|nginx|apache|openssh|ssh|smb|nfs|ftp|vsftpd|mysql|oracle|tomcat|jenkins|webmin|drupal|wordpress|joomla|php) ]]; then
                                     software="${BASH_REMATCH[1]}"
-                                    if [[ "$software" == "craft-cms" || "$software" == "craftcms" ]]; then
-                                        software="craft cms"
-                                    fi
                                 fi
 
                                 if [ -n "$software" ]; then
+                                    local final_query="$software"
+                                    if [ -n "$version_query" ]; then
+                                        final_query="$software $version_query"
+                                    fi
+
+                                    local search_term=$(echo "$final_query" | tr '-' ' ')
+
                                     if command -v searchsploit >/dev/null 2>&1; then
-                                        echo -e "\r\033[K${TXT_GLITCH_BLUE}[ MX:// ]${NC} ${TXT_DRK_RED}Exploit-DB records for '${software}':${NC}"
-                                        searchsploit "$software" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while read -r s_line; do
+                                        echo -e "\r\033[K${TXT_GLITCH_BLUE}[ MX:// ]${NC} ${TXT_DRK_RED}Exploit-DB records for '${search_term}':${NC}"
+                                        searchsploit "$search_term" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while read -r s_line; do
                                             echo -e "\r\033[K  ${TXT_DRK_RED}->${NC} ${TXT_CORE}${s_line}${NC}"
                                         done
                                     fi
