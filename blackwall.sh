@@ -8,7 +8,7 @@ source "${BASE_DIR}/core/dns.sh"
 source "${BASE_DIR}/core/network.sh"
 
 source "${BASE_DIR}/daemons/recon.sh"
-source "${BASE_DIR}/daemons/bruteforce.sh"
+source "${BASE_DIR}/daemons/leak_extractor.sh"
 source "${BASE_DIR}/daemons/weaponize.sh"
 source "${BASE_DIR}/daemons/web_fuzz.sh"
 source "${BASE_DIR}/daemons/share_enum.sh"
@@ -35,7 +35,7 @@ show_help() {
     echo -e "  -t <IP>    Target IP"
     echo -e "  -r         Recon: Ping + Port Scan"
     echo -e "  -n <NAME>  Machine name (Will map to <NAME>.htb in /etc/hosts)"
-    echo -e "  -b         Bruteforce"
+    echo -e "  -e         Auto extractor leak files"
     echo -e "  -d         Post-Exploit: Start PEAS delivery server"
     echo -e "  -p         Payloads gen"
     echo -e "  -q         Skip art"
@@ -64,17 +64,17 @@ clean_exit() {
 
 trap clean_exit INT TERM
 
-while getopts "t:n:rbpqahwd" opt; do
+while getopts "t:n:repqahwd" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
         n ) MACHINE_NAME=$OPTARG ;;
-        b ) RUN_BRUTE=1 ;;
+        e ) RUN_BRUTE=1 ;;
         p ) RUN_PAYLOADS=1 ;;
         q ) SKIP_ART=1 ;;
         w ) RUN_WEB=1 ;;
         d ) RUN_DELIVERY=1 ;;
-        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1 ;; # Интегрировано в общий запуск
+        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1 ;;
         h ) show_help ;;
         \? ) show_help ;;
     esac
@@ -88,7 +88,7 @@ fi
 STATE[target_ip]="$TARGET"
 
 if [ -n "$MACHINE_NAME" ]; then
-    domain="${MACHINE_NAME}.htb" # Убрали local, теперь переменная запишется в STATE
+    domain="${MACHINE_NAME}.htb"
     STATE[target_domain]="$domain"
 
     if ! grep -qE "^[[:space:]]*${TARGET}[[:space:]]+${domain}" /etc/hosts; then
@@ -114,7 +114,7 @@ if (( RUN_WEB == 1 )); then
 fi
 
 if (( RUN_BRUTE == 1 )); then
-    run_bruteforce "$TARGET"
+    run_leak_extractor "$TARGET"
 fi
 
 if (( RUN_PAYLOADS == 1 )); then

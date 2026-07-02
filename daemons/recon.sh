@@ -121,9 +121,54 @@ scan_ports() {
             if [ -n "$p2049" ] && kill -0 "$p2049" 2>/dev/null; then running=1; fi
 
             while IFS= read -r -t 0.05 line <&3; do
-                echo -e "\r\033[K${line}"
-            done
+                if [[ "$line" =~ ^([^|]+)\|(.+)$ ]]; then
+                    local key="${BASH_REMATCH[1]}"
+                    local data="${BASH_REMATCH[2]}"
 
+                    case "$key" in
+                        "FFUF:80" | "FFUF:443" )
+                            echo -e "\r\033[K${TXT_SCARLET}[ FFUF:${key#*:} ]${NC} ${TXT_NEON}/${data}${NC}"
+                            ;;
+                        "INFO:80" | "INFO:443" )
+                            echo -e "\r\033[K${TXT_DRK_RED}[ INFO:${key#*:} ]${NC} ${TXT_MID_RED}${data}${NC}"
+                            ;;
+                        "NUCLEI:80" | "NUCLEI:443" )
+                            if [[ "$data" =~ ^\[([^\]]+)\][[:space:]]+\[([^\]]+)\][[:space:]]+\[([^\]]+)\][[:space:]]+([^[:space:]]+)(.*)$ ]]; then
+                                local template="${BASH_REMATCH[1]}"
+                                local proto="${BASH_REMATCH[2]}"
+                                local severity="${BASH_REMATCH[3]}"
+                                local url="${BASH_REMATCH[4]}"
+                                local extra="${BASH_REMATCH[5]}"
+
+                                local clean_extra=$(echo "$extra" | tr -d '[]"')
+                                clean_extra=$(echo "$clean_extra" | xargs)
+
+                                local sev_col="${TXT_GLOW}"
+                                case "$severity" in
+                                    "info" )     sev_col="${TXT_GLITCH_BLUE}" ;;
+                                    "low" )      sev_col="${TXT_NEON}" ;;
+                                    "medium" )   sev_col="${TXT_MID_RED}" ;;
+                                    "high" )     sev_col="${TXT_RED}" ;;
+                                    "critical" ) sev_col="${CORE}" ;;
+                                esac
+
+                                if [ -n "$clean_extra" ]; then
+                                    echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_CORE}${clean_extra}${NC}"
+                                else
+                                    echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC}"
+                                fi
+                            else
+                                echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${TXT_CORE}${data}${NC}"
+                            fi
+                            ;;
+                        * )
+                            echo -e "\r\033[K${line}"
+                            ;;
+                    esac
+                else
+                    echo -e "\r\033[K${line}"
+                fi
+            done
             if (( running == 0 )); then
                 break
             fi

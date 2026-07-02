@@ -18,8 +18,8 @@ run_shadow_web_fuzz() {
     local wordlist="/usr/share/wordlists/dirb/common.txt"
     local filter_size=$(curl -s -o /dev/null -H "User-Agent: Mozilla/5.0" "http://${host_target}:${port}/non_existent_path_$$" -w "%{size_download}")
 
-    echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Detected baseline wildcard size: ${filter_size} bytes." >> "$log_file"
-    echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Launching FFUF directory scanner..." >> "$log_file"
+    echo "INFO:${port}|Detected baseline wildcard size: ${filter_size} bytes." >> "$log_file"
+    echo "INFO:${port}|Launching FFUF directory scanner..." >> "$log_file"
 
     ffuf -w "$wordlist" \
          -u "$target_url/FUZZ" \
@@ -27,13 +27,13 @@ run_shadow_web_fuzz() {
          -t 80 \
          -timeout 5 \
          -s 2>/dev/null | while read -r line; do
-        echo -e "${TXT_SCARLET}[ FFUF:${port} ]${NC} ${TXT_NEON}/${line}${NC}" >> "$log_file"
+        echo "FFUF:${port}|${line}" >> "$log_file"
     done &
     local ffuf_pid=$!
 
     local nuclei_pid=""
     if command -v nuclei >/dev/null 2>&1; then
-        echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Launching Nuclei (Tech detection)..." >> "$log_file"
+        echo "INFO:${port}|Launching Nuclei (Tech detection)..." >> "$log_file"
 
         nuclei -u "$target_url" \
                -tags tech \
@@ -42,17 +42,17 @@ run_shadow_web_fuzz() {
                -concurrency 10 \
                -timeout 2 \
                -me 15s 2>/dev/null | while read -r line; do
-            echo -e "${TXT_GLITCH_BLUE}[ NUCLEI:${port} ]${NC} ${TXT_CORE}${line}${NC}" >> "$log_file"
+            echo "NUCLEI:${port}|${line}" >> "$log_file"
         done &
         nuclei_pid=$!
     fi
 
     wait $ffuf_pid 2>/dev/null
-    echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} FFUF scanning finished." >> "$log_file"
+    echo "INFO:${port}|FFUF scanning finished." >> "$log_file"
 
     if [ -n "$nuclei_pid" ]; then
         wait $nuclei_pid 2>/dev/null
-        echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Nuclei scanning finished." >> "$log_file"
+        echo "INFO:${port}|Nuclei scanning finished." >> "$log_file"
     fi
 }
 
