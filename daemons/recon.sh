@@ -209,9 +209,9 @@ scan_ports() {
                                 esac
 
                                 if [ -n "$clean_extra" ]; then
-                                    echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_CORE}${clean_extra}${NC}"
+                                    echo -e "\r\033[K${TXT_NEON}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_CORE}${clean_extra}${NC}"
                                 else
-                                    echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC}"
+                                    echo -e "\r\033[K${TXT_NEON}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC}"
                                fi
 
                                 local version_query=""

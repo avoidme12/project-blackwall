@@ -52,7 +52,9 @@ run_leak_extractor() {
 
     if (( leaks_found == 0 )); then
         ai_speak "No obvious data leaks detected on primary web vectors."
+        echo ""
     else
         ai_speak "Who benefit the most? You... or her?"
+        echo ""
     fi
 }

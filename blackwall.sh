@@ -59,7 +59,7 @@ clean_exit() {
     rm -f /tmp/blackwall_ffuf_${current_pid}.json 2>/dev/null
     rm -f /tmp/blackwall_vhost_${current_pid}.json 2>/dev/null
 
-    echo -e "\n${TXT_NEON}${ITLC}MX:// SHUTTING DOWN REMAINING DATA STREAMS..."
+    echo -e "\n${TXT_NEON}MX:// SHUTTING DOWN REMAINING DATA STREAMS..."
     echo -e "${TXT_CORE}${ITLC}The same fate awaits your entire species.${RESET_ALL}"
     exit 1
 }
