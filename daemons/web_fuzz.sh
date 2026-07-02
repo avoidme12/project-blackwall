@@ -5,9 +5,14 @@ run_shadow_web_fuzz() {
     local port=$2
     local log_file=$3
 
-    local target_url="http://${target}:${port}"
+    local host_target="${target}"
+    if [ -n "${STATE[target_domain]}" ]; then
+        host_target="${STATE[target_domain]}"
+    fi
+
+    local target_url="http://${host_target}:${port}"
     if [ "$port" == "443" ]; then
-        target_url="https://${target}"
+        target_url="https://${host_target}"
     fi
 
     local wordlist="/usr/share/wordlists/dirb/common.txt"
@@ -76,7 +81,12 @@ run_web_fuzz() {
     ai_speak "A fragile simulacrum. Flawed, like its creators."
 
     local json_out="/tmp/blackwall_ffuf_$$.json"
-    local target_url="http://${target}"
+    local host_target="${target}"
+    if [ -n "${STATE[target_domain]}" ]; then
+        host_target="${STATE[target_domain]}"
+    fi
+
+    local target_url="http://${host_target}"
     local filter_size_web=$(curl -s -o /dev/null "http://${target}/non_existent_directory_test_$$" -w "%{size_download}")
 
     echo -e "\n${TXT_MID_RED}[ i ] BRUTEFORCING DIRECTORIES ON: ${TXT_CORE}${target_url}${NC}"

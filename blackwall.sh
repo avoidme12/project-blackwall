@@ -15,6 +15,7 @@ if (( EUID != 0 )); then
     exit 1
 fi
 
+MACHINE_NAME=""
 TARGET=""
 RUN_RECON=0
 RUN_PAYLOADS=0
@@ -28,6 +29,7 @@ show_help() {
     echo -e "\nОпции:"
     echo -e "  -t <IP>    Target IP"
     echo -e "  -r         Recon: Ping + Port Scan"
+    echo -e "  -n <NAME>  Machine name (Will map to <NAME>.htb in /etc/hosts)"
     echo -e "  -b         Bruteforce"
     echo -e "  -p         Payloads gen"
     echo -e "  -q         Skip art"
@@ -39,6 +41,9 @@ show_help() {
 clean_exit() {
     local current_pid=$$
     cleanup_hosts
+    if [ -n "${STATE[target_domain]}" ]; then
+            sed -i "/[[:space:]]${STATE[target_domain]}$/d" /etc/hosts 2>/dev/null
+    fi
     rm -f /tmp/blackwall_async_${current_pid} 2>/dev/null
     rm -f /tmp/blackwall_ffuf_${current_pid}.json 2>/dev/null
     rm -f /tmp/blackwall_vhost_${current_pid}.json 2>/dev/null
@@ -48,10 +53,11 @@ clean_exit() {
 
 trap clean_exit INT TERM
 
-while getopts "t:rbpqahw" opt; do
+while getopts "t:n:rbpqahw" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
+        n ) MACHINE_NAME=$OPTARG ;;
         b ) RUN_BRUTE=1 ;;
         p ) RUN_PAYLOADS=1 ;;
         q ) SKIP_ART=1 ;;
@@ -65,6 +71,18 @@ done
 if [ -z "$TARGET" ]; then
     echo -e "${TXT_VOID}[!] ERROR: TARGET IS NULL${NC}"
     show_help
+fi
+
+STATE[target_ip]="$TARGET"
+
+if [ -n "$MACHINE_NAME" ]; then
+    local domain="${MACHINE_NAME}.htb"
+    STATE[target_domain]="$domain"
+
+    # Проверяем, нет ли уже этой записи в /etc/hosts
+    if ! grep -qE "^[[:space:]]*${TARGET}[[:space:]]+${domain}" /etc/hosts; then
+        echo -e "${TARGET}\t${domain}" >> /etc/hosts
+    fi
 fi
 
 clear
