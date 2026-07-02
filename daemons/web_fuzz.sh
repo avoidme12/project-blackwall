@@ -16,7 +16,7 @@ run_shadow_web_fuzz() {
     fi
 
     local wordlist="/usr/share/wordlists/dirb/common.txt"
-    local filter_size=$(curl -s -o /dev/null -H "User-Agent: Mozilla/5.0" "http://${target}:${port}/non_existent_path_$$" -w "%{size_download}")
+    local filter_size=$(curl -s -o /dev/null -H "User-Agent: Mozilla/5.0" "http://${host_target}:${port}/non_existent_path_$$" -w "%{size_download}")
 
     echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Detected baseline wildcard size: ${filter_size} bytes." >> "$log_file"
     echo -e "${TXT_DRK_RED}[ INFO:${port} ]${NC} Launching FFUF directory scanner..." >> "$log_file"

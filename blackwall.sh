@@ -3,12 +3,16 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 
 source "${BASE_DIR}/core/colors.sh"
 source "${BASE_DIR}/core/ui.sh"
+source "${BASE_DIR}/core/state.sh"
+source "${BASE_DIR}/core/dns.sh"
+source "${BASE_DIR}/core/network.sh"
+
 source "${BASE_DIR}/daemons/recon.sh"
 source "${BASE_DIR}/daemons/bruteforce.sh"
 source "${BASE_DIR}/daemons/weaponize.sh"
-source "${BASE_DIR}/core/state.sh"
-source "${BASE_DIR}/core/dns.sh"
 source "${BASE_DIR}/daemons/web_fuzz.sh"
+source "${BASE_DIR}/daemons/share_enum.sh"
+source "${BASE_DIR}/daemons/post_exp.sh"
 
 if (( EUID != 0 )); then
     echo -e "${TXT_CORE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
@@ -22,6 +26,7 @@ RUN_PAYLOADS=0
 RUN_BRUTE=0
 SKIP_ART=0
 RUN_WEB=0
+RUN_DELIVERY=0
 
 show_help() {
     echo -e "${TXT_RED}PROJECT BLACKWALL v1.0${NC}"
@@ -31,6 +36,7 @@ show_help() {
     echo -e "  -r         Recon: Ping + Port Scan"
     echo -e "  -n <NAME>  Machine name (Will map to <NAME>.htb in /etc/hosts)"
     echo -e "  -b         Bruteforce"
+    echo -e "  -d         Post-Exploit: Start PEAS delivery server"
     echo -e "  -p         Payloads gen"
     echo -e "  -q         Skip art"
     echo -e "  -a         Run all modules"
@@ -41,6 +47,11 @@ show_help() {
 clean_exit() {
     local current_pid=$$
     cleanup_hosts
+
+    if [ -n "${STATE[web_server_pid]}" ]; then
+        kill "${STATE[web_server_pid]}" 2>/dev/null
+    fi
+
     if [ -n "${STATE[target_domain]}" ]; then
             sed -i "/[[:space:]]${STATE[target_domain]}$/d" /etc/hosts 2>/dev/null
     fi
@@ -53,7 +64,7 @@ clean_exit() {
 
 trap clean_exit INT TERM
 
-while getopts "t:n:rbpqahw" opt; do
+while getopts "t:n:rbpqahwd" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
@@ -62,7 +73,8 @@ while getopts "t:n:rbpqahw" opt; do
         p ) RUN_PAYLOADS=1 ;;
         q ) SKIP_ART=1 ;;
         w ) RUN_WEB=1 ;;
-        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1 ;;
+        d ) RUN_DELIVERY=1 ;;
+        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1 ;; # Интегрировано в общий запуск
         h ) show_help ;;
         \? ) show_help ;;
     esac
@@ -76,10 +88,9 @@ fi
 STATE[target_ip]="$TARGET"
 
 if [ -n "$MACHINE_NAME" ]; then
-    local domain="${MACHINE_NAME}.htb"
+    domain="${MACHINE_NAME}.htb" # Убрали local, теперь переменная запишется в STATE
     STATE[target_domain]="$domain"
 
-    # Проверяем, нет ли уже этой записи в /etc/hosts
     if ! grep -qE "^[[:space:]]*${TARGET}[[:space:]]+${domain}" /etc/hosts; then
         echo -e "${TARGET}\t${domain}" >> /etc/hosts
     fi
@@ -107,5 +118,10 @@ if (( RUN_BRUTE == 1 )); then
 fi
 
 if (( RUN_PAYLOADS == 1 )); then
+    configure_network_parameters
     generate_payloads
+fi
+
+if (( RUN_DELIVERY == 1 )); then
+    run_peas_delivery
 fi

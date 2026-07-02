@@ -31,6 +31,11 @@ scan_ports() {
     STATE[shadow_web_80_pid]=""
     STATE[shadow_web_443_pid]=""
 
+    STATE[shadow_share_445_started]="false"
+    STATE[shadow_share_2049_started]="false"
+    STATE[shadow_share_445_pid]=""
+    STATE[shadow_share_2049_pid]=""
+
     while IFS= read -r line; do
         if [[ "$line" =~ Discovered[[:space:]]+open[[:space:]]+port[[:space:]]+([0-9]+)/tcp ]]; then
             local port="${BASH_REMATCH[1]}"
@@ -48,6 +53,18 @@ scan_ports() {
                 STATE[shadow_web_443_started]="true"
                 run_shadow_web_fuzz "$ip" "443" "$async_log" &
                 STATE[shadow_web_443_pid]=$!
+            fi
+
+            if [[ "$port" == "445" && "${STATE[shadow_share_445_started]}" == "false" ]]; then
+                STATE[shadow_share_445_started]="true"
+                run_shadow_share_enum "$ip" "445" "$async_log" &
+                STATE[shadow_share_445_pid]=$!
+            fi
+
+            if [[ "$port" == "2049" && "${STATE[shadow_share_2049_started]}" == "false" ]]; then
+                STATE[shadow_share_2049_started]="true"
+                run_shadow_share_enum "$ip" "2049" "$async_log" &
+                STATE[shadow_share_2049_pid]=$!
             fi
         fi
     done < <(nmap -p- --min-rate 1500 -Pn -v "$ip" 2>/dev/null)
@@ -78,10 +95,13 @@ scan_ports() {
         ai_speak "You seek the key to a door that does not exist. Typical of your kind."
     fi
 
-    if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
+    if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" || "${STATE[shadow_share_445_started]}" == "true" || "${STATE[shadow_share_2049_started]}" == "true" ]]; then
         echo -e "\n${TXT_DRK_RED}============================================================${NC}"
         echo -e "${TXT_PULSE_RED}[///] SYNCHRONIZING ASYNC DAEMONS...${NC}"
         echo -e "${TXT_MID_RED}[ i ] Streaming background discoveries in real-time:${NC}\n"
+
+        tail -f -n +1 "$async_log" 2>/dev/null &
+        local tail_pid=$!
 
         local spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
         local spin_idx=0
@@ -91,10 +111,14 @@ scan_ports() {
         while true; do
             local p80="${STATE[shadow_web_80_pid]}"
             local p443="${STATE[shadow_web_443_pid]}"
+            local p445="${STATE[shadow_share_445_pid]}"
+            local p2049="${STATE[shadow_share_2049_pid]}"
             local running=0
 
             if [ -n "$p80" ] && kill -0 "$p80" 2>/dev/null; then running=1; fi
             if [ -n "$p443" ] && kill -0 "$p443" 2>/dev/null; then running=1; fi
+            if [ -n "$p445" ] && kill -0 "$p445" 2>/dev/null; then running=1; fi
+            if [ -n "$p2049" ] && kill -0 "$p2049" 2>/dev/null; then running=1; fi
 
             while IFS= read -r -t 0.05 line <&3; do
                 echo -e "\r\033[K${line}"
