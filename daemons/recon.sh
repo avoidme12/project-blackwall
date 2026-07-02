@@ -4,7 +4,7 @@ check_target_alive() {
     local ip=$1
     echo -e "${TXT_DRK_RED}[///] BOOTP BROADCAST 1... INITIATING CONSOLE DHCP SWEEP${NC}"
     if ping -c 1 -W 2 "$ip" > /dev/null 2>&1; then
-        echo -e "${TXT_SCARLET}[ ++ ]${NC} DHCP CLIENT BOUND TO ADDRESS ${TXT_CORE}${ip}${NC}"
+        echo -e "${TXT_SCARLET}[ ++ ] DHCP CLIENT BOUND TO ADDRESS ${TXT_CORE}${ip}${NC}"
     else
         echo -e "\n${TXT_CORE}${ITLC}An unusually high security level. How intriguing...${NC}\n"
         exit 1
@@ -45,7 +45,7 @@ scan_ports() {
                 local version="${BASH_REMATCH[3]}"
 
                 local_ports+=("$port")
-                echo -e "${TXT_SCARLET}[ ++ ]${NC} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_NEON}${service}${NC} (${TXT_MID_RED}${version}${NC})"
+                echo -e "${TXT_SCARLET}[ ++ ]${NC}${TXT_NEON} PORT: ${TXT_CORE}${port}/tcp${NC} \t${TXT_DRK_RED}>>${NC} ${TXT_NEON}${service}${NC} (${TXT_MID_RED}${version}${NC})"
 
                 if [[ "$port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
                     STATE[shadow_web_80_started]="true"
@@ -124,7 +124,7 @@ scan_ports() {
             local ports_string=$(IFS=, ; echo "${local_ports[*]}")
             STATE[open_ports]="$ports_string"
 
-            echo -e "\n${TXT_MID_RED}[ i ] UNCOMPRESSING KERNEL IMAGE ... OK. INITIATING PHASE 2 DEEP SCAN...${NC}"
+            echo -e "\n${TXT_MID_RED}[ i ] UNCOMPRESSING KERNEL IMAGE ... OK. INITIATING DEEP PORT ANALYSIS...${NC}"
 
             nmap -sC -sV -p"$ports_string" "$ip" -oN "$output_file" > /dev/null 2>&1
 
@@ -214,11 +214,18 @@ scan_ports() {
                                     echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_NEON}${template}${NC}"
                                 fi
 
-                                local query=$(echo "$template" | sed -E 's/-(detect|version|eol|service|server|config|detection)//g')
-                                if [[ "$query" =~ (craft|nginx|apache|ssh|openssh|smb|nfs|ftp|vsftpd|mysql|oracle|tomcat|jenkins|webmin|drupal|wordpress|joomla|php) ]]; then
+                                local software=""
+                                if [[ "$template" =~ (craft-cms|craftcms|nginx|apache|openssh|ssh|smb|nfs|ftp|vsftpd|mysql|oracle|tomcat|jenkins|webmin|drupal|wordpress|joomla|php) ]]; then
+                                    software="${BASH_REMATCH[1]}"
+                                    if [[ "$software" == "craft-cms" || "$software" == "craftcms" ]]; then
+                                        software="craft cms"
+                                    fi
+                                fi
+
+                                if [ -n "$software" ]; then
                                     if command -v searchsploit >/dev/null 2>&1; then
-                                        echo -e "\r\033[K${TXT_GLITCH_BLUE}[ MX:// ]${NC} ${TXT_DRK_RED}Exploit-DB records for '${query}':${NC}"
-                                        searchsploit "$query" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while read -r s_line; do
+                                        echo -e "\r\033[K${TXT_GLITCH_BLUE}[ MX:// ]${NC} ${TXT_DRK_RED}Exploit-DB records for '${software}':${NC}"
+                                        searchsploit "$software" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while read -r s_line; do
                                             echo -e "\r\033[K  ${TXT_DRK_RED}->${NC} ${TXT_CORE}${s_line}${NC}"
                                         done
                                     fi
@@ -254,7 +261,17 @@ scan_ports() {
         done
 
         while IFS= read -r -t 0.05 line <&3; do
-            echo -e "\r\033[K${line}"
+            if [[ "$line" == *"|"* ]]; then
+                local key="${line%%|*}"
+                local data="${line#*|}"
+                case "$key" in
+                    "FFUF:80" | "FFUF:443" ) echo -e "\r\033[K${TXT_SCARLET}[ FFUF:${key#*:} ]${NC} ${TXT_NEON}/${data}${NC}" ;;
+                    "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" ) echo -e "\r\033[K${TXT_DRK_RED}[ INFO:${key#*:} ]${NC} ${TXT_MID_RED}${data}${NC}" ;;
+                    "NUCLEI:80" | "NUCLEI:443" ) echo -e "\r\033[K${TXT_GLITCH_BLUE}[ NUCLEI:${key#*:} ]${NC} ${TXT_CORE}${data}${NC}" ;;
+                esac
+            else
+                echo -e "\r\033[K${line}"
+            fi
         done
         echo -ne "\r\033[K"
 

@@ -111,7 +111,13 @@ if (( RUN_RECON == 1 )); then
 fi
 
 if (( RUN_WEB == 1 )); then
-    run_web_fuzz "$TARGET"
+    if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
+        echo -e "\n${TXT_DRK_RED}============================================================${NC}"
+        echo -e "${TXT_DRK_RED}[///] MX:// TARGET WEB MATRIX ALREADY DIGITIZED DURING RECON PHASE.${NC}"
+        echo -e "${TXT_DRK_RED}============================================================${NC}"
+    else
+        run_web_fuzz "$TARGET"
+    fi
 fi
 
 if (( RUN_BRUTE == 1 )); then
