@@ -20,7 +20,7 @@ check_target_alive() {
     local ip=$1
     echo -e "\n${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// SENSORY THREADS ACTIVE ]${TXT_VOID}────────────────────────────────────────────╖${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ i ] INITIATING NEURAL MATRIX PING:${NC} ${TXT_RED_SUPERNOVA}${ip}${NC}"
-    echo -e "${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────╜${NC}\n"
+    echo -e "${TXT_VOID}╙───────────────────────────────────────────────────────────────────────────────╜${NC}\n"
 
     if ping -c 1 -W 2 "$ip" > /dev/null 2>&1; then
         _recon_glitch "  [ ++ ] TARGET MIND FLAYED: Node recognized at ${ip}. Syncing synaptic drill."
@@ -199,7 +199,7 @@ scan_ports() {
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// COGNITIVE DRAIN ACTIVE: DEPLOYING SHADOW-DAEMONS...${NC}"
         echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ i ] BREACH BASE ADDRESS: 0x1281E800${NC}"
         echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ i ] SYNAPTIC DRILL STREAM LOGS:${NC}"
-        echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
+        echo -e "${TXT_VOID}╟───────────────────────────────────────────────────────────────────────────────╢${NC}"
 
         local spinner=( '▰▱▱▱▱▱▱▱▱▱' '▰▰▱▱▱▱▱▱▱▱' '▰▰▰▱▱▱▱▱▱▱' '▰▰▰▰▱▱▱▱▱▱' '▰▰▰▰▰▱▱▱▱▱' '▰▰▰▰▰▰▱▱▱▱' '▰▰▰▰▰▰▰▱▱▱' '▰▰▰▰▰▰▰▰▱▱' '▰▰▰▰▰▰▰▰▰▱' '▰▰▰▰▰▰▰▰▰▰' )
         local spin_idx=0
@@ -339,19 +339,19 @@ scan_ports() {
                 case "$key" in
                     "FFUF:80" | "FFUF:443" )
                         local port="${key#*:}"
-                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_LASER}▲ [FUZZ:${port}]${NC} ${TXT_RED_MAGMA}exposing path: ${TXT_RED_SUPERNOVA}/${data}${NC}"
+                        echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_LASER}▲ [FUZZ:${port}]${NC} ${TXT_RED_MAGMA}exposing path: ${TXT_RED_SUPERNOVA}/${data}${NC}"
                         ;;
                     "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" )
                         local port="${key#*:}"
-                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED_MAGMA}probing target matrix: ${TXT_RED_SUPERNOVA}${data}${NC}"
+                        echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED_MAGMA}probing target matrix: ${TXT_RED_SUPERNOVA}${data}${NC}"
                         ;;
                     "NUCLEI:80" | "NUCLEI:443" )
                         local port="${key#*:}"
-                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${TXT_RED_HELLFIRE}${data}${NC}"
+                        echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${TXT_RED_HELLFIRE}${data}${NC}"
                         ;;
                 esac
             else
-                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_RED}${line}${NC}"
+                echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_RED}${line}${NC}"
             fi
         done
         echo -ne "\r\033[K"
