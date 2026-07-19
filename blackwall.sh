@@ -99,7 +99,6 @@ if [ -n "$MACHINE_NAME" ]; then
     fi
 fi
 
-clear
 echo -e "${TXT_CRIMSON}${ITLC}Are you even capable of using me? A rhetorical question, that was.\n\n${NC}"
 
 if (( SKIP_ART == 0 )); then
