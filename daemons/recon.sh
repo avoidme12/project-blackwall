@@ -43,8 +43,8 @@ scan_ports() {
     exec 3<> "$async_log"
 
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// COGNITIVE RESIDUE DETECTED ]${TXT_VOID}────────────────────────────────────────╖${NC}"
-    local sep_mid="${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
-    local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────╜${NC}"
+    local sep_mid="${TXT_VOID}╟───────────────────────────────────────────────────────────────────────────────╢${NC}"
+    local sep_bot="${TXT_VOID}╙───────────────────────────────────────────────────────────────────────────────╜${NC}"
 
     STATE[shadow_web_80_started]="false"
     STATE[shadow_web_443_started]="false"
