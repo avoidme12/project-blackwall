@@ -187,10 +187,8 @@ scan_ports() {
             echo -e "$sep_bot\n"
 
             ai_speak "Target neural network acquired. Data migration to primary matrix – complete."
-            echo ""
         else
             ai_speak "You seek the key to a door that does not exist. Typical of your kind."
-            echo ""
         fi
     fi
 

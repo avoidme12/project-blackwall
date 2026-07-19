@@ -41,10 +41,9 @@ run_peas_delivery() {
     echo -e "${TXT_VOID}│${NC}"
     echo -e "${TXT_VOID}├─${TXT_RED_PLASMA}[ ! ] SEVER THE LINK PROTOCOL:${NC}"
     echo -e "${TXT_VOID}│${NC}   ${TXT_RED_LASER}Press ENTER to collapse local server and reclaim memory space...${NC}"
-    echo -e "$sep_bot\n"
+    echo -e "$sep_bot\n\n"
 
     ai_speak "Deliver the simulacrum. Let them analyze their own ruin."
-    echo ""
     read -r
 
     kill "$server_pid" 2>/dev/null

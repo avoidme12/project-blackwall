@@ -118,7 +118,7 @@ fi
 if (( RUN_WEB == 1 )); then
     if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
         echo -e "\n${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// CORE WARNING ]${TXT_VOID}───────────────────────────────────────────────────────╖${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}TARGET WEB MATRIX ALREADY DIGITIZED DURING RECON PHASE.${NC}               ${TXT_VOID}║${NC}"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}TARGET WEB MATRIX ALREADY DIGITIZED DURING RECON PHASE.${NC}                      ${TXT_VOID}║${NC}"
         echo -e "${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}\n"
     else
         run_web_fuzz "$TARGET"
