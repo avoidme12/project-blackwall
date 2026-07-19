@@ -11,6 +11,7 @@ source "${BASE_DIR}/daemons/recon.sh"
 source "${BASE_DIR}/daemons/leak_extractor.sh"
 source "${BASE_DIR}/daemons/weaponize.sh"
 source "${BASE_DIR}/daemons/web_fuzz.sh"
+source "${BASE_DIR}/daemons/web_meta.sh"
 source "${BASE_DIR}/daemons/share_enum.sh"
 source "${BASE_DIR}/daemons/post_exp.sh"
 
