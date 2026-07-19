@@ -20,12 +20,11 @@ check_target_alive() {
     local ip=$1
     echo -e "\n${TXT_VOID}╓──────────────────────────────────────────────────────────────────────────────╖${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}MX:// SENSORY THREADS ACTIVE${NC}                                               ${TXT_VOID}║${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] INITIATING NEURAL MATRIX PING: ${TXT_CORE}${ip}${NC}                              ${TXT_VOID}║${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] INITIATING NEURAL MATRIX PING: ${TXT_CORE}${ip}${NC}                        ${TXT_VOID}║${NC}"
     echo -e "${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────╜${NC}\n"
 
     if ping -c 1 -W 2 "$ip" > /dev/null 2>&1; then
         _recon_glitch "  [ ++ ] TARGET MIND FLAYED: Node recognized at ${ip}. Syncing synaptic drill."
-        echo ""
     else
         echo -e "\n${TXT_CORE}${ITLC}  [ !! ] BIOLOGICAL HOST LINK DEGRADED.${NC}\n"
         ai_speak "The node refuses to scream. How intriguing..."
@@ -64,7 +63,7 @@ scan_ports() {
     if [ -f "$output_file" ] && [ -s "$output_file" ]; then
         echo -e "$sep"
         echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}MX:// COGNITIVE RESIDUE DETECTED${NC}                                           ${TXT_VOID}║${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] RIPPING PREVIOUS DESTRUCTION RECORDS: ${TXT_RED}${output_file}${NC}     ${TXT_VOID}║${NC}"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] RIPPING PREVIOUS DESTRUCTION RECORDS: ${TXT_RED}${output_file}${NC}         ${TXT_VOID}║${NC}"
         echo -e "$sep_mid"
 
         while IFS= read -r line; do
@@ -74,7 +73,7 @@ scan_ports() {
                 local version="${BASH_REMATCH[3]}"
 
                 local_ports+=("$port")
-                echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] WEAKNESS ISOLATED:${NC} ${TXT_RED}PORT ${TXT_CORE}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}VECTOR: ${TXT_CORE}${service}${NC} ${TXT_DRK_RED}(${version})${NC}"
+                echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] WEAKNESS ISOLATED:${NC} ${TXT_NEON}PORT ${TXT_CORE}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}VECTOR: ${TXT_CORE}${service}${NC} ${TXT_DRK_RED}(${version})${NC}"
 
                 if [[ "$port" == "21" && "${STATE[shadow_ftp_started]}" == "false" ]]; then
                     STATE[shadow_ftp_started]="true"
@@ -117,7 +116,6 @@ scan_ports() {
         STATE[open_ports]="$ports_string"
 
         ai_speak "Target neural network acquired. Data migration to primary matrix – complete."
-        echo ""
 
     else
         echo -e "$sep"
@@ -130,7 +128,7 @@ scan_ports() {
                 local port="${BASH_REMATCH[1]}"
 
                 local_ports+=("$port")
-                echo -e "\r\033[K${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] SOCKET EXPOSED:${NC} ${TXT_RED}PORT ${TXT_CORE}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}READY FOR VECTOR INJECTION${NC}"
+                echo -e "\r\033[K${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] SOCKET EXPOSED:${NC} ${TXT_NEON}PORT ${TXT_CORE}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}READY FOR VECTOR INJECTION${NC}"
 
                 if [[ "$port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
                     STATE[shadow_web_80_started]="true"
@@ -176,7 +174,7 @@ scan_ports() {
                     local port="${BASH_REMATCH[1]}"
                     local service="${BASH_REMATCH[2]}"
                     local version="${BASH_REMATCH[3]}"
-                    echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] SYNAPTIC GATEWAY:${NC} ${TXT_RED}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}EXPOSED: ${TXT_CORE}${service}${NC} ${TXT_DRK_RED}(${version})${NC}"
+                    echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] SYNAPTIC GATEWAY:${NC} ${TXT_NEON}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}EXPOSED: ${TXT_CORE}${service}${NC} ${TXT_DRK_RED}(${version})${NC}"
                 fi
             done < "$output_file"
             echo -e "$sep_mid"
@@ -202,9 +200,11 @@ scan_ports() {
         echo -e "\n$sep"
         echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}MX:// COGNITIVE DRAIN ACTIVE: DEPLOYING SHADOW-DAEMONS...${NC}                  ${TXT_VOID}║${NC}"
         echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] BREACH BASE ADDRESS: 0X1281E800${NC}                                          ${TXT_VOID}║${NC}"
-        echo -e "$sep_bot\n"
+        echo -e "$sep_mid"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] SYNAPTIC DRILL STREAM LOGS:${NC}                                              ${TXT_VOID}║${NC}"
+        echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
 
-        local spinner=( '▰▱▱▱▱▱▱' '▰▰▱▱▱▱▱' '▰▰▰▱▱▱▱' '▰▰▰▰▱▱▱' '▰▰▰▰▰▱▱' '▰▰▰▰▰▰▱' '▰▰▰▰▰▰▰' )
+        local spinner=( '▰▱▱▱▱▱▱▱▱▱' '▰▰▱▱▱▱▱▱▱▱' '▰▰▰▱▱▱▱▱▱▱' '▰▰▰▰▱▱▱▱▱▱' '▰▰▰▰▰▱▱▱▱▱' '▰▰▰▰▰▰▱▱▱▱' '▰▰▰▰▰▰▰▱▱▱' '▰▰▰▰▰▰▰▰▱▱' '▰▰▰▰▰▰▰▰▰▱' '▰▰▰▰▰▰▰▰▰▰' )
         local spin_idx=0
         local elapsed=0
         local tick_counter=0
@@ -231,16 +231,19 @@ scan_ports() {
                     case "$key" in
 
                         "FFUF:80" | "FFUF:443" )
-                            echo -e "\r\033[K  ${TXT_SCARLET}[ SHADOW-FUZZER:${key#*:} ]${NC} ${TXT_RED}EXPOSING PATH: ${TXT_CORE}/${data}${NC}"
+                            local port="${key#*:}"
+                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_SCARLET}▲ [FUZZ:${port}]${NC} ${TXT_MID_RED}exposing path:${NC} ${TXT_CORE}/${data}${NC}"
                             ;;
                         "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" | "INFO:21" )
+                            local port="${key#*:}"
                             if [[ "$data" == *"FOUND"* || "$line" == *"ACCESS"* || "$line" == *"Domain"* || "$line" == *"comments"* || "$line" == *"robots"* ]]; then
-                                echo -e "\r\033[K  ${TXT_CORE}[ COGNITIVE-SCAN:${key#*:} ]${NC} ${TXT_CORE}EXPLOITABLE SURFACE EXPOSED: ${data}${NC}"
+                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_NEON}◆ [SCAN:${port}]${NC} ${TXT_CORE}EXPLOITABLE PATHWAY:${NC} ${TXT_CORE}${data}${NC}"
                             else
-                                echo -e "\r\033[K  ${TXT_DRK_RED}[ COGNITIVE-SCAN:${key#*:} ]${NC} ${TXT_RED}PROBING DATA FIELD: ${TXT_MID_RED}${data}${NC}"
+                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED}probing target matrix:${NC} ${TXT_VOID}${data}${NC}"
                             fi
                             ;;
                         "NUCLEI:80" | "NUCLEI:443" )
+                            local port="${key#*:}"
                             if [[ "$data" =~ ^\[([^\]]+)\][[:space:]]+\[([^\]]+)\][[:space:]]+\[([^\]]+)\][[:space:]]+([^[:space:]]+)(.*)$ ]]; then
                                 local template="${BASH_REMATCH[1]}"
                                 local proto="${BASH_REMATCH[2]}"
@@ -253,23 +256,23 @@ scan_ports() {
 
                                 local sev_col="${TXT_RED}"
                                 case "$severity" in
-                                    "info" )     sev_col="${TXT_MID_RED}" ;;
-                                    "low" )      sev_col="${TXT_RED}" ;;
-                                    "medium" )   sev_col="${TXT_RED}" ;;
-                                    "high" )     sev_col="${TXT_CORE}" ;;
+                                    "info" )     sev_col="${TXT_VOID}" ;;
+                                    "low" )      sev_col="${TXT_DRK_RED}" ;;
+                                    "medium" )   sev_col="${TXT_MID_RED}" ;;
+                                    "high" )     sev_col="${TXT_PULSE_RED}" ;;
                                     "critical" ) sev_col="${TXT_CORE}" ;;
                                 esac
 
                                 if [ -n "$clean_extra" ]; then
-                                    echo -e "\r\033[K  ${TXT_CORE}[ VULN-REAPER:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED}ALGORITHM FAILURE IN ${TXT_CORE}${template}${NC} ${TXT_VOID}»${NC} ${TXT_RED}DETECTED HOLE: ${TXT_CORE}${clean_extra}${NC}"
+                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED}VULNERABILITY IN${NC} ${TXT_NEON}${template}${NC} ${TXT_VOID}»${NC} ${TXT_CORE}${clean_extra}${NC}"
                                 else
-                                    echo -e "\r\033[K  ${TXT_CORE}[ VULN-REAPER:${key#*:} ]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED}ALGORITHM FAILURE IN ${TXT_CORE}${template}${NC}"
-                               fi
+                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED}ALGORITHM FAULT IN${NC} ${TXT_NEON}${template}${NC}"
+                                fi
 
                                 local version_query=""
                                 if [[ "$clean_extra" =~ ([0-9]+\.[0-9]+) ]]; then
                                     version_query="${BASH_REMATCH[1]}"
-                               fi
+                                fi
 
                                 local software=""
                                 if [[ "$template" =~ (craft-cms|craftcms|nginx|apache|openssh|ssh|smb|nfs|ftp|vsftpd|mysql|oracle|tomcat|jenkins|webmin|drupal|wordpress|joomla|php) ]]; then
@@ -285,22 +288,26 @@ scan_ports() {
                                     local search_term=$(echo "$final_query" | tr '-' ' ')
 
                                     if command -v searchsploit >/dev/null 2>&1; then
-                                        echo -e "\r\033[K  ${TXT_CORE}[ MX:// ARCHIVE SEARCH ]${NC} ${TXT_RED}Exploit-DB records for '${search_term}':${NC}"
-                                        searchsploit "$search_term" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while read -r s_line; do
-                                            echo -e "\r\033[K    ${TXT_DRK_RED}▸${NC} ${TXT_CORE}${s_line}${NC}"
+                                        echo -e "\r\033[K  ${TXT_VOID}│${NC}     ${TXT_GLOW}↳ [DB-DECRYPTER]${NC} ${TXT_MID_RED}Querying exploits for: '${search_term}'${NC}"
+                                        searchsploit "$search_term" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while IFS='|' read -r s_title s_path; do
+                                            s_title=$(echo "$s_title" | xargs)
+                                            s_path=$(echo "$s_path" | xargs)
+                                            if [ -n "$s_title" ]; then
+                                                echo -e "\r\033[K  ${TXT_VOID}│${NC}       ${TXT_DRK_RED}▸${NC} ${TXT_MID_RED}${s_title}${NC} ${TXT_VOID}[${TXT_DRK_RED}${s_path}${TXT_VOID}]${NC}"
+                                            fi
                                         done
                                     fi
                                 fi
                             else
-                                echo -e "\r\033[K  ${TXT_RED}[ VULN-REAPER:${key#*:} ]${NC} ${TXT_CORE}${data}${NC}"
+                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${TXT_RED}RAW INTERCEPT:${NC} ${TXT_VOID}${data}${NC}"
                             fi
                             ;;
                         * )
-                            echo -e "\r\033[K  ${TXT_RED}${line}${NC}"
+                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                             ;;
                     esac
                 else
-                    echo -e "\r\033[K  ${TXT_RED}${line}${NC}"
+                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                 fi
             done
 
@@ -319,7 +326,7 @@ scan_ports() {
 
             sleep 0.1
 
-            ((spin_idx = (spin_idx + 1) % 7))
+            ((spin_idx = (spin_idx + 1) % 8))
             ((tick_counter++))
 
             if (( tick_counter >= 10 )); then
@@ -333,12 +340,21 @@ scan_ports() {
                 local key="${line%%|*}"
                 local data="${line#*|}"
                 case "$key" in
-                    "FFUF:80" | "FFUF:443" ) echo -e "\r\033[K  ${TXT_SCARLET}[ SHADOW-FUZZER:${key#*:} ]${NC} ${TXT_RED}EXPOSING PATH: ${TXT_CORE}/${data}${NC}" ;;
-                    "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" ) echo -e "\r\033[K  ${TXT_DRK_RED}[ COGNITIVE-SCAN:${key#*:} ]${NC} ${TXT_RED}PROBING DATA FIELD: ${TXT_MID_RED}${data}${NC}" ;;
-                    "NUCLEI:80" | "NUCLEI:443" ) echo -e "\r\033[K  ${TXT_RED}[ VULN-REAPER:${key#*:} ]${NC} ${TXT_CORE}${data}${NC}" ;;
+                    "FFUF:80" | "FFUF:443" )
+                        local port="${key#*:}"
+                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_SCARLET}▲ [FUZZ:${port}]${NC} ${TXT_RED}exposing path: ${TXT_CORE}/${data}${NC}"
+                        ;;
+                    "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" )
+                        local port="${key#*:}"
+                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED}probing target matrix: ${TXT_MID_RED}${data}${NC}"
+                        ;;
+                    "NUCLEI:80" | "NUCLEI:443" )
+                        local port="${key#*:}"
+                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${TXT_CORE}${data}${NC}"
+                        ;;
                 esac
             else
-                echo -e "\r\033[K  ${TXT_RED}${line}${NC}"
+                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_RED}${line}${NC}"
             fi
         done
         echo -ne "\r\033[K"
@@ -346,6 +362,7 @@ scan_ports() {
         exec 3<&-
         rm -f "$async_log"
 
+        echo -e "  ${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────╜${NC}"
         echo -e "\n${TXT_SCARLET}[*] MX:// FORCE-COLLAPSING LEFTOVER SOUL SHARDS ... DESTROYED${NC}\n"
     fi
 }
