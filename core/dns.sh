@@ -21,7 +21,7 @@ add_to_hosts() {
         STATE[added_hosts]="${STATE[added_hosts]},$domain"
     fi
 
-    echo -e "${TXT_SCARLET}[ DNS ]${NC} Added mapping: ${TXT_CORE}${ip}${NC} -> ${TXT_NEON}${domain}${NC}"
+    echo -e "  ${TXT_VOID}├─${TXT_B_ALARM}[ DNS ]${NC} ${TXT_RED_MAGMA}Mapping synchronized:${NC} ${TXT_RED_SUPERNOVA}${ip}${NC} ${TXT_VOID}»${NC} ${TXT_RED_HELLFIRE}${domain}${NC}"
 }
 
 cleanup_hosts() {

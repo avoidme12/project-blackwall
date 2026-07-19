@@ -17,7 +17,7 @@ source "${BASE_DIR}/daemons/post_exp.sh"
 source "${BASE_DIR}/daemons/hash_cracker.sh"
 
 if (( EUID != 0 )); then
-    echo -e "${TXT_CORE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
+    echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
     exit 1
 fi
 
@@ -32,7 +32,7 @@ RUN_DELIVERY=0
 RUN_CRACK=0
 
 show_help() {
-    echo -e "${TXT_RED}PROJECT BLACKWALL v1.0${NC}"
+    echo -e "${TXT_RED_PLASMA}PROJECT BLACKWALL v1.0${NC}"
     echo -e "Использование: $0 -t <IP> [ОПЦИИ]"
     echo -e "\nОпции:"
     echo -e "  -t <IP>    Target IP"
@@ -63,13 +63,12 @@ clean_exit() {
     rm -f /tmp/blackwall_ffuf_${current_pid}.json 2>/dev/null
     rm -f /tmp/blackwall_vhost_${current_pid}.json 2>/dev/null
 
-    echo -e "\n${TXT_NEON}MX:// SHUTTING DOWN REMAINING DATA STREAMS... \n"
-    echo -e "${TXT_CORE}${ITLC}The same fate awaits your entire species.${RESET_ALL}"
+    echo -e "\n${TXT_RED_HELLFIRE}MX:// COLLAPSING MEMORY CHANNELS... SHUTTING DOWN DATA STREAMS...${NC}"
+    echo -e "${TXT_CORE}${ITLC}The same fate awaits your entire species.${RESET_ALL}\n"
     exit 1
 }
 
 trap clean_exit INT TERM
-
 
 while getopts "t:n:repqahwdc" opt; do
     case ${opt} in
@@ -118,9 +117,9 @@ fi
 
 if (( RUN_WEB == 1 )); then
     if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" ]]; then
-        echo -e "\n${TXT_DRK_RED}============================================================${NC}"
-        echo -e "${TXT_DRK_RED}[///] MX:// TARGET WEB MATRIX ALREADY DIGITIZED DURING RECON PHASE.${NC}"
-        echo -e "${TXT_DRK_RED}============================================================${NC}"
+        echo -e "\n${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// CORE WARNING ]${TXT_VOID}───────────────────────────────────────────────────────╖${NC}"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}TARGET WEB MATRIX ALREADY DIGITIZED DURING RECON PHASE.${NC}               ${TXT_VOID}║${NC}"
+        echo -e "${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}\n"
     else
         run_web_fuzz "$TARGET"
     fi

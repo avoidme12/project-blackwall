@@ -21,20 +21,24 @@ detect_local_ip() {
 configure_network_parameters() {
     detect_local_ip
 
-    echo -e "${TXT_DRK_RED}============================================================${NC}"
-    echo -e "${TXT_PULSE_RED}[///] CONFIGURING CONNECTION PARAMETERS...${NC}"
+    local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// CONFIGURING CONNECTION PARAMETERS ]${TXT_VOID}──────────────────────────╖${NC}"
+    local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
 
-    echo -ne "${TXT_MID_RED}[ ? ] Confirm LHOST [${TXT_CORE}${STATE[lhost]}${TXT_MID_RED}] (Press Enter or type new IP): ${NC}"
+    echo -e "\n$sep"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// TUNING EXTRATERRESTRIAL SYNAPSE PARAMETERS...${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Confirm LHOST (Local Interface IP):${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Current [${TXT_RED_SUPERNOVA}${STATE[lhost]}${TXT_RED_MAGMA}] (Press Enter or type new IP): ${NC}"
     read -r user_ip
     if [ -n "$user_ip" ]; then
         STATE[lhost]="$user_ip"
     fi
 
     STATE[lport]="4444"
-    echo -ne "${TXT_MID_RED}[ ? ] Confirm LPORT [${TXT_CORE}${STATE[lport]}${TXT_MID_RED}] (Press Enter or type new port): ${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Confirm LPORT (Target Listener Port):${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Current [${TXT_RED_SUPERNOVA}${STATE[lport]}${TXT_RED_MAGMA}] (Press Enter or type new port): ${NC}"
     read -r user_port
     if [ -n "$user_port" ]; then
         STATE[lport]="$user_port"
     fi
-    echo -e "${TXT_DRK_RED}============================================================${NC}\n"
+    echo -e "$sep_bot\n"
 }

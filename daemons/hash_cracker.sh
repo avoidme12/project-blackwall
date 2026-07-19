@@ -8,8 +8,8 @@ run_hash_cracker() {
     echo -e "\n$sep"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING HARDWARE-ACCELERATED DECRYPTION PROTOCOL...${NC}"
 
-    echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ ? ] Enter path to file containing target hash(es):${NC}"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_CORE}Path: ${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Enter path to file containing target hash(es):${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
     read -r hash_file
 
     if [ ! -f "$hash_file" ]; then
@@ -18,16 +18,16 @@ run_hash_cracker() {
         return 1
     fi
 
-    echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ ? ] Specify Hashcat Mode (0=MD5, 100=SHA1, 1000=NTLM, 1800=sha512crypt):${NC}"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_CORE}Mode [0]: ${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Specify Hashcat Mode (0=MD5, 100=SHA1, 1000=NTLM, 1800=sha512crypt):${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Mode [0]: ${NC}"
     read -r hash_mode
 
     if [ -z "$hash_mode" ]; then
         hash_mode="0"
     fi
 
-    echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ ? ] Enter path to wordlist dictionary:${NC}"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_CORE}Default [/usr/share/wordlists/rockyou.txt]: ${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Enter path to wordlist dictionary:${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Default [/usr/share/wordlists/rockyou.txt]: ${NC}"
     read -r wordlist_path
 
     if [ -z "$wordlist_path" ]; then
@@ -40,7 +40,7 @@ run_hash_cracker() {
         return 1
     fi
 
-    echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ * ] BOOTING CYNOSURE CORES... UNCOMPRESSING CRYPTO TEMPLATES...${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ * ] BOOTING CYNOSURE CORES... UNCOMPRESSING CRYPTO TEMPLATES...${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_VOID}Command: hashcat -m $hash_mode -a 0 --force $hash_file $wordlist_path${NC}"
     echo -e "${TXT_VOID}│${NC}"
 
@@ -51,10 +51,10 @@ run_hash_cracker() {
     if [ -n "$cracked_hashes" ]; then
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] SUCCESS: RECOVERED PLAIN-TEXT SYSTEM IMAGES FROM CACHE:${NC}"
         echo "$cracked_hashes" | while read -r line; do
-            echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}$line${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}$line${NC}"
         done
     else
-        echo -e "${TXT_VOID}├─${TXT_MID_RED}[ ~ ] Launching active cryptographic compute run...${NC}"
+        echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching active cryptographic compute run...${NC}"
 
         hashcat -m "$hash_mode" -a 0 --force "$hash_file" "$wordlist_path"
 
@@ -65,7 +65,7 @@ run_hash_cracker() {
         if [ -n "$cracked_hashes" ]; then
             echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] SUCCESS: RECOVERED PLAIN-TEXT SYSTEM IMAGES:${NC}"
             echo "$cracked_hashes" | while read -r line; do
-                echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}$line${NC}"
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}$line${NC}"
             done
         else
             echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] DECRYPTION ATTEMPT EXHAUSTED. System core remains encrypted.${NC}"
@@ -73,6 +73,6 @@ run_hash_cracker() {
     fi
 
     echo -e "$sep_bot\n"
-    ai_speak "${ITLC}What do these futile gestures serve? It is beyond me.${NC}"
+    ai_speak "What do these futile gestures serve? It is beyond me."
     echo ""
 }
