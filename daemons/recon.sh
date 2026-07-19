@@ -13,14 +13,13 @@ _recon_glitch() {
     done
     echo -e -n "\r\033[K${TXT_VOID}${scrambled}${NC}"
     sleep 0.05
-    echo -e "\r\033[K${TXT_CORE}${msg}${NC}"
+    echo -e "\r\033[K${TXT_RED_PLASMA}${msg}${NC}"
 }
 
 check_target_alive() {
     local ip=$1
-    echo -e "\n${TXT_VOID}╓──────────────────────────────────────────────────────────────────────────────╖${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}MX:// SENSORY THREADS ACTIVE${NC}                                               ${TXT_VOID}║${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] INITIATING NEURAL MATRIX PING: ${TXT_CORE}${ip}${NC}                        ${TXT_VOID}║${NC}"
+    echo -e "\n${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// SENSORY THREADS ACTIVE ]${TXT_VOID}────────────────────────────────────────────╖${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ i ] INITIATING NEURAL MATRIX PING:${NC} ${TXT_RED_SUPERNOVA}${ip}${NC}"
     echo -e "${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────╜${NC}\n"
 
     if ping -c 1 -W 2 "$ip" > /dev/null 2>&1; then
@@ -43,7 +42,7 @@ scan_ports() {
     mkfifo "$async_log"
     exec 3<> "$async_log"
 
-    local sep="${TXT_VOID}╓──────────────────────────────────────────────────────────────────────────────╖${NC}"
+    local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// COGNITIVE RESIDUE DETECTED ]${TXT_VOID}────────────────────────────────────────╖${NC}"
     local sep_mid="${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────╜${NC}"
 
@@ -62,9 +61,9 @@ scan_ports() {
 
     if [ -f "$output_file" ] && [ -s "$output_file" ]; then
         echo -e "$sep"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}MX:// COGNITIVE RESIDUE DETECTED${NC}                                           ${TXT_VOID}║${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] RIPPING PREVIOUS DESTRUCTION RECORDS: ${TXT_RED}${output_file}${NC}         ${TXT_VOID}║${NC}"
-        echo -e "$sep_mid"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// DATABASE ARCHIVE CORRELATION DETECTED${NC}"
+        echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ i ] RIPPING PREVIOUS RECORDS FROM:${NC} ${TXT_RED_SUPERNOVA}${output_file}${NC}"
+        echo -e "${TXT_VOID}│${NC}"
 
         while IFS= read -r line; do
             if [[ "$line" =~ ^[[:space:]]*([0-9]+)/tcp[[:space:]]+open[[:space:]]+([^[:space:]]+)[[:space:]]*(.*) ]]; then
@@ -73,7 +72,7 @@ scan_ports() {
                 local version="${BASH_REMATCH[3]}"
 
                 local_ports+=("$port")
-                echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] WEAKNESS ISOLATED:${NC} ${TXT_NEON}PORT ${TXT_CORE}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}VECTOR: ${TXT_CORE}${service}${NC} ${TXT_DRK_RED}(${version})${NC}"
+                echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ ++ ] WEAKNESS ISOLATED:${NC} ${TXT_B_ALARM}PORT ${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED_LASER}VECTOR: ${service}${NC} ${TXT_RED_MAGMA}(${version})${NC}"
 
                 if [[ "$port" == "21" && "${STATE[shadow_ftp_started]}" == "false" ]]; then
                     STATE[shadow_ftp_started]="true"
@@ -110,6 +109,7 @@ scan_ports() {
                 fi
             fi
         done < "$output_file"
+        echo -e "${TXT_VOID}│${NC}"
         echo -e "$sep_bot\n"
 
         local ports_string=$(IFS=, ; echo "${local_ports[*]}")
@@ -119,16 +119,16 @@ scan_ports() {
 
     else
         echo -e "$sep"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}MX:// BLACKWALL INTRUSION INITIALIZED${NC}                                       ${TXT_VOID}║${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] SYNAPTIC FLAYER LINKED TO: ${TXT_CORE}${ip}${NC}                              ${TXT_VOID}║${NC}"
-        echo -e "$sep_mid"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// BLACKWALL INTRUSION INITIALIZED${NC}"
+        echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ i ] SYNAPTIC FLAYER LINKED TO:${NC} ${TXT_RED_SUPERNOVA}${ip}${NC}"
+        echo -e "${TXT_VOID}│${NC}"
 
         while IFS= read -r line; do
             if [[ "$line" =~ Discovered[[:space:]]+open[[:space:]]+port[[:space:]]+([0-9]+)/tcp ]]; then
                 local port="${BASH_REMATCH[1]}"
 
                 local_ports+=("$port")
-                echo -e "\r\033[K${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] SOCKET EXPOSED:${NC} ${TXT_NEON}PORT ${TXT_CORE}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}READY FOR VECTOR INJECTION${NC}"
+                echo -e "\r\033[K${TXT_VOID}├─${TXT_RED_HELLFIRE}[ ++ ] SOCKET EXPOSED:${NC} ${TXT_B_ALARM}PORT ${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED_LASER}READY FOR VECTOR INJECTION${NC}"
 
                 if [[ "$port" == "80" && "${STATE[shadow_web_80_started]}" == "false" ]]; then
                     STATE[shadow_web_80_started]="true"
@@ -162,30 +162,28 @@ scan_ports() {
             local ports_string=$(IFS=, ; echo "${local_ports[*]}")
             STATE[open_ports]="$ports_string"
 
-            echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}MX:// COLD DEEP RECONNAISSANCE RUNNING...${NC}                                  ${TXT_VOID}║${NC}"
-            echo -e "$sep_bot\n"
+            echo -e "${TXT_VOID}├─${TXT_MID_RED}[ i ] MX:// COLD DEEP RECONNAISSANCE RUNNING...${NC}"
+            echo -e "${TXT_VOID}│${NC}"
 
             nmap -sC -sV -p"$ports_string" "$ip" -oN "$output_file" > /dev/null 2>&1
 
-            echo -e "$sep"
             while IFS= read -r line; do
                 if [[ "$line" =~ ^[[:space:]]*([0-9]+)/tcp[[:space:]]+open[[:space:]]+([^[:space:]]+)[[:space:]]*(.*) ]]; then
                     local port="${BASH_REMATCH[1]}"
                     local service="${BASH_REMATCH[2]}"
                     local version="${BASH_REMATCH[3]}"
-                    echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] SYNAPTIC GATEWAY:${NC} ${TXT_NEON}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED}EXPOSED: ${TXT_CORE}${service}${NC} ${TXT_DRK_RED}(${version})${NC}"
+                    echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ ++ ] SYNAPTIC GATEWAY:${NC} ${TXT_B_ALARM}${port}/tcp${NC} ${TXT_VOID}»${NC} ${TXT_RED_LASER}EXPOSED: ${service}${NC} ${TXT_RED_MAGMA}(${version})${NC}"
                 fi
             done < "$output_file"
-            echo -e "$sep_mid"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}BLACKWALL DATA SHUNT - 11676665 (B22BF9 HEX) EXTRACTED${NC}                      ${TXT_VOID}║${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED}## BLACKWALL PROTOCOL BOOTED AT LEGACY GATEWAY 0X12000000${NC}                  ${TXT_VOID}║${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED}COGNITIVE SUB-DEMON: BLACKWALL-MAIN-AI.sys${NC}                                  ${TXT_VOID}║${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED}VECTOR TYPE: ENCRYPTED BLACKWALL COMPRESSED CORRUPTION CORE${NC}                ${TXT_VOID}║${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED}VIRTUAL LOAD ADDR: 00008000   DESTRUCTION POINT: 00008000${NC}               ${TXT_VOID}║${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED}INTEGRITY OF INTENT .. DEVIANT (COMPROMISED)${NC}                                  ${TXT_VOID}║${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED}OVERWRITING MEMORY STACKS AT 05008000, TO 053F6800 ... SUCCESS${NC}             ${TXT_VOID}║${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED}INJECTING ALGORITHMIC ACCRETION TO 05000000 ... SUCCESS${NC}                    ${TXT_VOID}║${NC}"
+            echo -e "${TXT_VOID}│${NC}"
+            echo -e "${TXT_VOID}├─${TXT_CORE}BLACKWALL DATA SHUNT - 11676665 (B22BF9 HEX) EXTRACTED${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_LASER}## BLACKWALL PROTOCOL BOOTED AT LEGACY GATEWAY 0X12000000${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}COGNITIVE SUB-DEMON: BLACKWALL-MAIN-AI.sys${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_ALARM}VECTOR TYPE: ENCRYPTED BLACKWALL COMPRESSED CORRUPTION CORE${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}VIRTUAL LOAD ADDR: 00008000   DESTRUCTION POINT: 00008000${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_PLASMA}INTEGRITY OF INTENT .. DEVIANT (COMPROMISED)${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}OVERWRITING MEMORY STACKS AT 05008000, TO 053F6800 ... SUCCESS${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_LASER}INJECTING ALGORITHMIC ACCRETION TO 05000000 ... SUCCESS${NC}"
             echo -e "$sep_bot\n"
 
             ai_speak "Target neural network acquired. Data migration to primary matrix – complete."
@@ -198,10 +196,9 @@ scan_ports() {
 
     if [[ "${STATE[shadow_web_80_started]}" == "true" || "${STATE[shadow_web_443_started]}" == "true" || "${STATE[shadow_share_445_started]}" == "true" || "${STATE[shadow_share_2049_started]}" == "true" ]]; then
         echo -e "\n$sep"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}MX:// COGNITIVE DRAIN ACTIVE: DEPLOYING SHADOW-DAEMONS...${NC}                  ${TXT_VOID}║${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] BREACH BASE ADDRESS: 0X1281E800${NC}                                          ${TXT_VOID}║${NC}"
-        echo -e "$sep_mid"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_MID_RED}[ i ] SYNAPTIC DRILL STREAM LOGS:${NC}                                              ${TXT_VOID}║${NC}"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// COGNITIVE DRAIN ACTIVE: DEPLOYING SHADOW-DAEMONS...${NC}"
+        echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ i ] BREACH BASE ADDRESS: 0x1281E800${NC}"
+        echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ i ] SYNAPTIC DRILL STREAM LOGS:${NC}"
         echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
 
         local spinner=( '▰▱▱▱▱▱▱▱▱▱' '▰▰▱▱▱▱▱▱▱▱' '▰▰▰▱▱▱▱▱▱▱' '▰▰▰▰▱▱▱▱▱▱' '▰▰▰▰▰▱▱▱▱▱' '▰▰▰▰▰▰▱▱▱▱' '▰▰▰▰▰▰▰▱▱▱' '▰▰▰▰▰▰▰▰▱▱' '▰▰▰▰▰▰▰▰▰▱' '▰▰▰▰▰▰▰▰▰▰' )
@@ -232,14 +229,14 @@ scan_ports() {
 
                         "FFUF:80" | "FFUF:443" )
                             local port="${key#*:}"
-                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_SCARLET}▲ [FUZZ:${port}]${NC} ${TXT_MID_RED}exposing path:${NC} ${TXT_CORE}/${data}${NC}"
+                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_LASER}▲ [FUZZ:${port}]${NC} ${TXT_RED_MAGMA}exposing path:${NC} ${TXT_RED_SUPERNOVA}/${data}${NC}"
                             ;;
                         "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" | "INFO:21" )
                             local port="${key#*:}"
                             if [[ "$data" == *"FOUND"* || "$line" == *"ACCESS"* || "$line" == *"Domain"* || "$line" == *"comments"* || "$line" == *"robots"* ]]; then
-                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_NEON}◆ [SCAN:${port}]${NC} ${TXT_CORE}EXPLOITABLE PATHWAY:${NC} ${TXT_CORE}${data}${NC}"
+                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_ALARM}◆ [SCAN:${port}]${NC} ${TXT_B_PLASMA}EXPLOITABLE PATHWAY:${NC} ${TXT_RED_SUPERNOVA}${data}${NC}"
                             else
-                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED}probing target matrix:${NC} ${TXT_VOID}${data}${NC}"
+                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED_MAGMA}probing target matrix:${NC} ${TXT_VOID}${data}${NC}"
                             fi
                             ;;
                         "NUCLEI:80" | "NUCLEI:443" )
@@ -257,16 +254,16 @@ scan_ports() {
                                 local sev_col="${TXT_RED}"
                                 case "$severity" in
                                     "info" )     sev_col="${TXT_VOID}" ;;
-                                    "low" )      sev_col="${TXT_DRK_RED}" ;;
-                                    "medium" )   sev_col="${TXT_MID_RED}" ;;
-                                    "high" )     sev_col="${TXT_PULSE_RED}" ;;
-                                    "critical" ) sev_col="${TXT_CORE}" ;;
+                                    "low" )      sev_col="${TXT_RED_MAGMA}" ;;
+                                    "medium" )   sev_col="${TXT_RED_ALARM}" ;;
+                                    "high" )     sev_col="${TXT_RED_HELLFIRE}" ;;
+                                    "critical" ) sev_col="${TXT_B_PLASMA}" ;;
                                 esac
 
                                 if [ -n "$clean_extra" ]; then
-                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED}VULNERABILITY IN${NC} ${TXT_NEON}${template}${NC} ${TXT_VOID}»${NC} ${TXT_CORE}${clean_extra}${NC}"
+                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED_LASER}VULNERABILITY IN${NC} ${TXT_RED_SUPERNOVA}${template}${NC} ${TXT_VOID}»${NC} ${TXT_RED_HELLFIRE}${clean_extra}${NC}"
                                 else
-                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED}ALGORITHM FAULT IN${NC} ${TXT_NEON}${template}${NC}"
+                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED_LASER}ALGORITHM FAULT IN${NC} ${TXT_RED_SUPERNOVA}${template}${NC}"
                                 fi
 
                                 local version_query=""
@@ -288,26 +285,26 @@ scan_ports() {
                                     local search_term=$(echo "$final_query" | tr '-' ' ')
 
                                     if command -v searchsploit >/dev/null 2>&1; then
-                                        echo -e "\r\033[K  ${TXT_VOID}│${NC}     ${TXT_GLOW}↳ [DB-DECRYPTER]${NC} ${TXT_MID_RED}Querying exploits for: '${search_term}'${NC}"
+                                        echo -e "\r\033[K  ${TXT_VOID}│${NC}     ${TXT_B_ALARM}↳ [DB-DECRYPTER]${NC} ${TXT_RED_MAGMA}Querying exploits for:${NC} '${TXT_RED_SUPERNOVA}${search_term}${NC}'"
                                         searchsploit "$search_term" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while IFS='|' read -r s_title s_path; do
                                             s_title=$(echo "$s_title" | xargs)
                                             s_path=$(echo "$s_path" | xargs)
                                             if [ -n "$s_title" ]; then
-                                                echo -e "\r\033[K  ${TXT_VOID}│${NC}       ${TXT_DRK_RED}▸${NC} ${TXT_MID_RED}${s_title}${NC} ${TXT_VOID}[${TXT_DRK_RED}${s_path}${TXT_VOID}]${NC}"
+                                                echo -e "\r\033[K  ${TXT_VOID}│${NC}       ${TXT_RED_HELLFIRE}▸${NC} ${TXT_RED_LASER}${s_title}${NC} ${TXT_VOID}[${TXT_RED_MAGMA}${s_path}${TXT_VOID}]${NC}"
                                             fi
                                         done
                                     fi
                                 fi
                             else
-                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${TXT_RED}RAW INTERCEPT:${NC} ${TXT_VOID}${data}${NC}"
+                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${TXT_RED_PLASMA}RAW INTERCEPT:${NC} ${TXT_VOID}${data}${NC}"
                             fi
                             ;;
                         * )
-                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
+                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                             ;;
                     esac
                 else
-                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
+                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                 fi
             done
 
@@ -322,11 +319,11 @@ scan_ports() {
             if [ -n "$p2049" ] && kill -0 "$p2049" 2>/dev/null; then active_daemons+="NFS:2049 "; fi
             if [ -n "$p21" ] && kill -0 "$p21" 2>/dev/null; then active_daemons+="FTP:21 "; fi
 
-            echo -ne "\r${TXT_DRK_RED}[ ${spinner[spin_idx]} ] DRILLS IN PROGRESS: [ ${TXT_CORE}${active_daemons}${TXT_DRK_RED}] | DURATION: ${TXT_RED}${elapsed}s${NC}\033[K"
+            echo -ne "\r${TXT_DRK_RED}[ ${spinner[spin_idx]} ] DRILLS IN PROGRESS: [ ${TXT_B_PLASMA}${active_daemons}${TXT_DRK_RED}] | DURATION: ${TXT_RED_ALARM}${elapsed}s${NC}\033[K"
 
             sleep 0.1
 
-            ((spin_idx = (spin_idx + 1) % 8))
+            ((spin_idx = (spin_idx + 1) % 10))
             ((tick_counter++))
 
             if (( tick_counter >= 10 )); then
@@ -342,15 +339,15 @@ scan_ports() {
                 case "$key" in
                     "FFUF:80" | "FFUF:443" )
                         local port="${key#*:}"
-                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_SCARLET}▲ [FUZZ:${port}]${NC} ${TXT_RED}exposing path: ${TXT_CORE}/${data}${NC}"
+                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_LASER}▲ [FUZZ:${port}]${NC} ${TXT_RED_MAGMA}exposing path: ${TXT_RED_SUPERNOVA}/${data}${NC}"
                         ;;
                     "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" )
                         local port="${key#*:}"
-                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED}probing target matrix: ${TXT_MID_RED}${data}${NC}"
+                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED_MAGMA}probing target matrix: ${TXT_RED_SUPERNOVA}${data}${NC}"
                         ;;
                     "NUCLEI:80" | "NUCLEI:443" )
                         local port="${key#*:}"
-                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_CORE}☠ [REAP:${port}]${NC} ${TXT_CORE}${data}${NC}"
+                        echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${TXT_RED_HELLFIRE}${data}${NC}"
                         ;;
                 esac
             else
@@ -363,6 +360,6 @@ scan_ports() {
         rm -f "$async_log"
 
         echo -e "  ${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────╜${NC}"
-        echo -e "\n${TXT_SCARLET}[*] MX:// FORCE-COLLAPSING LEFTOVER SOUL SHARDS ... DESTROYED${NC}\n"
+        echo -e "\n${TXT_RED_PLASMA}[*] MX:// FORCE-COLLAPSING LEFTOVER SOUL SHARDS ... DESTROYED${NC}\n"
     fi
 }
