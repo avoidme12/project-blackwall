@@ -229,14 +229,14 @@ scan_ports() {
 
                         "FFUF:80" | "FFUF:443" )
                             local port="${key#*:}"
-                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_LASER}▲ [FUZZ:${port}]${NC} ${TXT_RED_MAGMA}exposing path:${NC} ${TXT_RED_SUPERNOVA}/${data}${NC}"
+                            echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_LASER}▲ [FUZZ:${port}]${NC} ${TXT_RED_MAGMA}exposing path:${NC} ${TXT_RED_SUPERNOVA}/${data}${NC}"
                             ;;
                         "INFO:80" | "INFO:443" | "INFO:445" | "INFO:2049" | "INFO:21" )
                             local port="${key#*:}"
                             if [[ "$data" == *"FOUND"* || "$line" == *"ACCESS"* || "$line" == *"Domain"* || "$line" == *"comments"* || "$line" == *"robots"* ]]; then
-                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_ALARM}◆ [SCAN:${port}]${NC} ${TXT_B_PLASMA}EXPLOITABLE PATHWAY:${NC} ${TXT_RED_SUPERNOVA}${data}${NC}"
+                                echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_ALARM}◆ [SCAN:${port}]${NC} ${TXT_B_PLASMA}EXPLOITABLE PATHWAY:${NC} ${TXT_RED_SUPERNOVA}${data}${NC}"
                             else
-                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED_MAGMA}probing target matrix:${NC} ${TXT_VOID}${data}${NC}"
+                                echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_DRK_RED}◆ [SCAN:${port}]${NC} ${TXT_RED_MAGMA}probing target matrix:${NC} ${TXT_VOID}${data}${NC}"
                             fi
                             ;;
                         "NUCLEI:80" | "NUCLEI:443" )
@@ -261,12 +261,12 @@ scan_ports() {
                                 esac
 
                                 if [ -n "$clean_extra" ]; then
-                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED_LASER}VULNERABILITY IN${NC} ${TXT_RED_SUPERNOVA}${template}${NC} ${TXT_VOID}»${NC} ${TXT_RED_HELLFIRE}${clean_extra}${NC}"
+                                    echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED_LASER}VULNERABILITY IN${NC} ${TXT_RED_SUPERNOVA}${template}${NC} ${TXT_VOID}»${NC} ${TXT_RED_HELLFIRE}${clean_extra}${NC}"
                                 else
-                                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED_LASER}ALGORITHM FAULT IN${NC} ${TXT_RED_SUPERNOVA}${template}${NC}"
+                                    echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED_LASER}ALGORITHM FAULT IN${NC} ${TXT_RED_SUPERNOVA}${template}${NC}"
                                 fi
 
-                                local version_query=""
+                                local version_query=
                                 if [[ "$clean_extra" =~ ([0-9]+\.[0-9]+) ]]; then
                                     version_query="${BASH_REMATCH[1]}"
                                 fi
@@ -285,26 +285,26 @@ scan_ports() {
                                     local search_term=$(echo "$final_query" | tr '-' ' ')
 
                                     if command -v searchsploit >/dev/null 2>&1; then
-                                        echo -e "\r\033[K  ${TXT_VOID}│${NC}     ${TXT_B_ALARM}↳ [DB-DECRYPTER]${NC} ${TXT_RED_MAGMA}Querying exploits for:${NC} '${TXT_RED_SUPERNOVA}${search_term}${NC}'"
+                                        echo -e "\r\033[K${TXT_VOID}│${NC}     ${TXT_B_ALARM}↳ [DB-DECRYPTER]${NC} ${TXT_RED_MAGMA}Querying exploits for:${NC} '${TXT_RED_SUPERNOVA}${search_term}${NC}'"
                                         searchsploit "$search_term" 2>/dev/null | grep -vE 'Exploit Title|---|No Results' | head -n 3 | while IFS='|' read -r s_title s_path; do
                                             s_title=$(echo "$s_title" | xargs)
                                             s_path=$(echo "$s_path" | xargs)
                                             if [ -n "$s_title" ]; then
-                                                echo -e "\r\033[K  ${TXT_VOID}│${NC}       ${TXT_RED_HELLFIRE}▸${NC} ${TXT_RED_LASER}${s_title}${NC} ${TXT_VOID}[${TXT_RED_MAGMA}${s_path}${TXT_VOID}]${NC}"
+                                                echo -e "\r\033[K${TXT_VOID}│${NC}       ${TXT_RED_HELLFIRE}▸${NC} ${TXT_RED_LASER}${s_title}${NC} ${TXT_VOID}[${TXT_RED_MAGMA}${s_path}${TXT_VOID}]${NC}"
                                             fi
                                         done
                                     fi
                                 fi
                             else
-                                echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${TXT_RED_PLASMA}RAW INTERCEPT:${NC} ${TXT_VOID}${data}${NC}"
+                                echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${TXT_RED_PLASMA}RAW INTERCEPT:${NC} ${TXT_VOID}${data}${NC}"
                             fi
                             ;;
                         * )
-                            echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
+                            echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                             ;;
                     esac
                 else
-                    echo -e "\r\033[K  ${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
+                    echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                 fi
             done
 
