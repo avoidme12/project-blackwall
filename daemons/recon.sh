@@ -298,11 +298,11 @@ scan_ports() {
                             fi
                             ;;
                         * )
-                            echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
+                            echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡[RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                             ;;
                     esac
                 else
-                    echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡ [RAW]${NC} ${TXT_MID_RED}${line}${NC}"
+                    echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_RED_HELLFIRE}⚡[RAW]${NC} ${TXT_MID_RED}${line}${NC}"
                 fi
             done
 
