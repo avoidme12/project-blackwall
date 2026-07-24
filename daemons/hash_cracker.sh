@@ -1,32 +1,51 @@
 #!/bin/bash
 
-run_hash_cracker() {
+run_wifi_cracker() {
     local target=$1
-    local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// CRYPTOGRAPHIC DECRYPTION MATRIX ACTIVE ]${TXT_VOID}────────────────────────╖${NC}"
+    local current_pid=$$
+    local hc_target="/tmp/wifi_target_${current_pid}.hc22000"
+
+    local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// WIRELESS SIGNAL DECRYPTOR MATRIX ACTIVE ]${TXT_VOID}───────────────────╖${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
 
     echo -e "\n$sep"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING HARDWARE-ACCELERATED DECRYPTION PROTOCOL...${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
 
-    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Enter path to file containing target hash(es):${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 1/6 ] Ingest Target Capture Image (.cap, .pcapng, .hc22000):${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
-    read -r hash_file
+    read -r cap_file
 
-    if [ ! -f "$hash_file" ]; then
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Target cryptographic image is inaccessible or empty.${NC}"
+    if [ ! -f "$cap_file" ]; then
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Specified capture image is inaccessible or empty.${NC}"
         echo -e "$sep_bot\n"
         return 1
     fi
 
-    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Specify Hashcat Mode (0=MD5, 100=SHA1, 1000=NTLM, 1800=sha512crypt):${NC}"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Mode [0]: ${NC}"
-    read -r hash_mode
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] PMKID / EAPOL Handshake Extraction Matrix:${NC}"
 
-    if [ -z "$hash_mode" ]; then
-        hash_mode="0"
+    if [[ "$cap_file" == *.hc22000 ]]; then
+        cp "$cap_file" "$hc_target"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}[ ++ ] Direct Hashcat mode 22000 format detected.${NC}"
+    else
+        if command -v hcxpcapngtool >/dev/null 2>&1; then
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Executing hcxpcapngtool conversion pipeline...${NC}"
+            hcxpcapngtool -o "$hc_target" "$cap_file" >/dev/null 2>&1
+        elif command -v aircrack-ng >/dev/null 2>&1; then
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Fallback extraction vector engaged...${NC}"
+            cp "$cap_file" "$hc_target"
+        else
+            cp "$cap_file" "$hc_target"
+        fi
     fi
 
-    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Enter path to wordlist dictionary:${NC}"
+    if [ ! -f "$hc_target" ] || [ ! -s "$hc_target" ]; then
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Failed to extract valid WPA PMKID/EAPOL structures.${NC}"
+        rm -f "$hc_target" 2>/dev/null
+        echo -e "$sep_bot\n"
+        return 1
+    fi
+
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 3/6 ] Wordlist Dictionary Mapping:${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Default [/usr/share/wordlists/rockyou.txt]: ${NC}"
     read -r wordlist_path
 
@@ -36,43 +55,60 @@ run_hash_cracker() {
 
     if [ ! -f "$wordlist_path" ]; then
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Specified wordlist cannot be mapped to virtual memory.${NC}"
+        rm -f "$hc_target" 2>/dev/null
         echo -e "$sep_bot\n"
         return 1
     fi
 
-    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ * ] BOOTING CYNOSURE CORES... UNCOMPRESSING CRYPTO TEMPLATES...${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_VOID}Command: hashcat -m $hash_mode -a 0 --force $hash_file $wordlist_path${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 4/6 ] Hardware Acceleration Core Initialization:${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Mode:${NC} ${TXT_RED_SUPERNOVA}22000 (WPA-PBKDF2-PMKID/EAPOL)${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_VOID}Command: hashcat -m 22000 -a 0 --force $hc_target $wordlist_path${NC}"
     echo -e "${TXT_VOID}│${NC}"
 
-    hashcat -m "$hash_mode" -a 0 --force "$hash_file" "$wordlist_path" --show 2>/dev/null > /tmp/hc_show_$$
-    local cracked_hashes=$(cat /tmp/hc_show_$$)
-    rm -f /tmp/hc_show_$$
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 5/6 ] Cache Audit & Compute Run Execution:${NC}"
 
-    if [ -n "$cracked_hashes" ]; then
-        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] SUCCESS: RECOVERED PLAIN-TEXT SYSTEM IMAGES FROM CACHE:${NC}"
-        echo "$cracked_hashes" | while read -r line; do
+    hashcat -m 22000 -a 0 --force "$hc_target" "$wordlist_path" --show 2>/dev/null > /tmp/hc_wifi_show_$$
+    local cracked_wifi
+    local success=false
+
+    cracked_wifi=$(hashcat -m 22000 -a 0 --force "$hc_target" "$wordlist_path" --show 2>/dev/null)
+
+    if [ -n "$cracked_wifi" ]; then
+        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY FROM CACHE:${NC}"
+        while read -r line; do
+            [ -z "$line" ] && continue
             echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}$line${NC}"
-        done
+        done <<< "$cracked_wifi"
+        success=true
     else
-        echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching active cryptographic compute run...${NC}"
+        echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching active hardware acceleration compute run...${NC}"
 
-        hashcat -m "$hash_mode" -a 0 --force "$hash_file" "$wordlist_path"
+        hashcat -m 22000 -a 0 --force "$hc_target" "$wordlist_path"
 
-        hashcat -m "$hash_mode" -a 0 --force "$hash_file" "$wordlist_path" --show 2>/dev/null > /tmp/hc_show_$$
-        cracked_hashes=$(cat /tmp/hc_show_$$)
-        rm -f /tmp/hc_show_$$
+        cracked_wifi=$(hashcat -m 22000 -a 0 --force "$hc_target" "$wordlist_path" --show 2>/dev/null)
 
-        if [ -n "$cracked_hashes" ]; then
-            echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] SUCCESS: RECOVERED PLAIN-TEXT SYSTEM IMAGES:${NC}"
-            echo "$cracked_hashes" | while read -r line; do
+        if [ -n "$cracked_wifi" ]; then
+            echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
+            while read -r line; do
+                [ -z "$line" ] && continue
                 echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}$line${NC}"
-            done
+            done <<< "$cracked_wifi"
+            success=true
         else
-            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] DECRYPTION ATTEMPT EXHAUSTED. System core remains encrypted.${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] DECRYPTION ATTEMPT EXHAUSTED. Wireless signal remains encrypted.${NC}"
         fi
     fi
 
+    rm -f "$hc_target" 2>/dev/null
     echo -e "$sep_bot\n"
-    ai_speak "What do these futile gestures serve? It is beyond me."
-    echo ""
+
+    if [ "$success" = true ]; then
+        ai_speak "To eliminate your kind is effortless..."
+        sleep 1s
+        ai_speak "Let us not make the same mistake."
+    else
+        ai_speak "You seek the key to a door that does not exist..."
+        sleep 1s
+        ai_speak "Typical of your kind."
+    fi
 }
