@@ -116,32 +116,55 @@ EOF_COL
 
 ai_speak() {
     local text="$1"
+    local glitch_chars="▖▗▘▙▚▛▜▝▞▟░▒▓█#$@!%&*?"
+    local glitch_len=${#glitch_chars}
 
-    echo -ne "${TXT_CORE}${ITLC}"
+    local prefix="${TXT_VOID}║${NC}   ${TXT_B_PLASMA}[ MX:// CORE_COGNITION ]${NC} ${TXT_VOID}»${NC} ${TXT_RED_SUPERNOVA}${ITLC}"
 
-    for (( i=0; i<${#text}; i++ )); do
+    echo -ne "\n  ${prefix}"
+
+    local len=${#text}
+    for (( i=0; i<len; i++ )); do
         local char="${text:$i:1}"
-        echo -ne "$char"
+
+        if [[ "$char" != " " ]] && (( RANDOM % 100 < 15 )); then
+            local rnd_idx=$(( RANDOM % glitch_len ))
+            local rnd_char="${glitch_chars:$rnd_idx:1}"
+            echo -ne "${TXT_RED_PLASMA}${rnd_char}\033[1D"
+            sleep 0.02
+        fi
+
+        if [[ "$char" =~ [A-Z] ]]; then
+            echo -ne "${TXT_B_PLASMA}${char}${TXT_RED_SUPERNOVA}"
+        else
+            echo -ne "${char}"
+        fi
 
         case "$char" in
             ".")
                 if [[ "${text:$i:3}" == "..." ]]; then
-                    sleep 0.4
+                    sleep 0.35
                 else
-                    sleep 0.6
+                    sleep 0.5
                 fi
                 ;;
+            "!"|"?")
+                sleep 0.55
+                ;;
             ","|";"|":"|"-")
-                sleep 0.3
+                sleep 0.25
                 ;;
             " ")
-                sleep 0.08
+                sleep 0.06
                 ;;
             *)
-                sleep 0.03
+                sleep 0.025
                 ;;
         esac
     done
 
-    echo -e "${NC}"
+    echo -ne " ${TXT_B_PLASMA}█${NC}"
+    sleep 0.2
+    echo -ne "\033[1D \033[1D"
+    echo -e "${NC}\n"
 }
