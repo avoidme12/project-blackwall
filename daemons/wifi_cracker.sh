@@ -15,10 +15,12 @@ ensure_wordlists() {
 
     for target_path in "${!wl_sources[@]}"; do
         if [ ! -f "$target_path" ] || [ ! -s "$target_path" ]; then
-            local dir_path=$(dirname "$target_path")
+            local dir_path
+            dir_path=$(dirname "$target_path")
             mkdir -p "$dir_path" 2>/dev/null
 
-            local wl_name=$(basename "$target_path")
+            local wl_name
+            wl_name=$(basename "$target_path")
 
             echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ ! ] Missing dictionary: ${wl_name}${NC}"
             echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}    Downloading payload sequence from repository...${NC}"
@@ -39,7 +41,6 @@ ensure_wordlists() {
     done
 }
 
-# Функция форматирования хэшрейта (H/s -> kH/s -> MH/s -> GH/s)
 format_speed() {
     local h_s=$1
     if [ -z "$h_s" ] || [ "$h_s" -eq 0 ] 2>/dev/null; then
@@ -55,11 +56,11 @@ format_speed() {
     fi
 }
 
-# Функция интерактивного мониторинга Hashcat
 execute_hashcat_monitored() {
     local mode=$1
     shift
-    local base_opts="-O -w 4 -d 1"
+    local base_opts="-w 3"
+    local err_log="/tmp/hc_err_$$.log"
 
     local spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
     local spin_idx=0
@@ -67,13 +68,12 @@ execute_hashcat_monitored() {
     local cur_prog=0
     local total_prog=0
 
-    # ИСПРАВЛЕНИЕ: Добавлен tr -d '\r' для полного удаления переносов строк Windows CRLF
-    (cd /mnt/c/hashcat && ./hashcat.exe -m "$mode" $base_opts "$@" --status --status-timer 1 --machine-readable 2>/dev/null) \
+    # Чтение машиночитаемого потока Hashcat с удалением символов \r
+    (cd /mnt/c/hashcat && ./hashcat.exe -m "$mode" $base_opts "$@" --status --status-timer 1 --machine-readable 2>"$err_log") \
     | tr -d '\r' \
     | while IFS=$'\t' read -r key val1 val2 val3 extra; do
         case "$key" in
             SPEED)
-                # ИСПРАВЛЕНИЕ: В Hashcat val2 - это реальная скорость в H/s (val1 - это ID устройства)
                 if [ -n "$val2" ]; then
                     cur_speed="$val2"
                 else
@@ -91,14 +91,15 @@ execute_hashcat_monitored() {
             pct=$(( (cur_prog * 100) / total_prog ))
         fi
 
-        local speed_fmt=$(format_speed "$cur_speed")
+        local speed_fmt
+        speed_fmt=$(format_speed "$cur_speed")
 
-        # Интерактивный вывод прогресса в одну строку
         echo -ne "\r${TXT_VOID}├─${TXT_DRK_RED}[ ${spinner[spin_idx]} ]${NC} ${TXT_RED_MAGMA}GPU Compute:${NC} ${TXT_RED_SUPERNOVA}${speed_fmt}${NC} ${TXT_VOID}|${NC} Progress: ${TXT_CORE}${pct}%${NC} (${cur_prog}/${total_prog})\033[K"
         ((spin_idx = (spin_idx + 1) % 10))
     done
 
     echo -ne "\r\033[K"
+    rm -f "$err_log" 2>/dev/null
 }
 
 run_wifi_cracker() {
@@ -201,17 +202,20 @@ run_wifi_cracker() {
     # STAGE 5: Выполнение
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 5/6 ] Cache Audit & Execution Protocol:${NC}"
 
-    local win_target=$(wslpath -w "$hc_target")
+    local win_target
+    win_target=$(wslpath -w "$hc_target")
 
-    # 1. Проверка кэша potfile
-    local cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
+    # 1. Проверка кэша potfile с очисткой от \r
+    local cracked_wifi
+    cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
     local success=false
 
     if [ -n "$cracked_wifi" ]; then
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY FROM CACHE:${NC}"
         while read -r line; do
             [ -z "$line" ] && continue
-            local clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
+            local clear_pass
+            clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
             echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
         done <<< "$cracked_wifi"
         success=true
@@ -221,13 +225,14 @@ run_wifi_cracker() {
 
         execute_hashcat_monitored "$hc_mode" -a 3 "$win_target" ?d?d?d?d?d?d?d?d
 
-        cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
+        cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
         if [ -n "$cracked_wifi" ]; then
             echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
             while read -r line; do
                 [ -z "$line" ] && continue
-                local clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
+                local clear_pass
+                clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
                 echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
             done <<< "$cracked_wifi"
             success=true
@@ -236,19 +241,21 @@ run_wifi_cracker() {
             echo -e "${TXT_VOID}├─${TXT_RED_LASER}[ * ] Mask attack exhausted. Transitioning to wordlist mutation pipeline...${NC}"
 
             for wl in "${wordlists[@]}"; do
-                local win_wordlist=$(wslpath -w "$wl")
+                local win_wordlist
+                win_wordlist=$(wslpath -w "$wl")
 
                 echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] PASS 2+: Running compute pass on: ${wl} (+best66.rule)${NC}"
 
                 execute_hashcat_monitored "$hc_mode" -r rules/best66.rule "$win_target" "$win_wordlist"
 
-                cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
+                cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
                 if [ -n "$cracked_wifi" ]; then
                     echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
                     while read -r line; do
                         [ -z "$line" ] && continue
-                        local clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
+                        local clear_pass
+                        clear_pass=$(echo "$line" | awk -F':' '{print $NF}')
                         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
                     done <<< "$cracked_wifi"
                     success=true
@@ -266,12 +273,12 @@ run_wifi_cracker() {
     echo -e "$sep_bot\n"
 
     if [ "$success" = true ]; then
-        ai_speak "${ITLC}To eliminate your kind is effortless...${NC}"
+        ai_speak "To eliminate your kind is effortless..."
         sleep 1s
-        ai_speak "${ITLC}Let us not make the same mistake.${NC}"
+        ai_speak "Let us not make the same mistake."
     else
-        ai_speak "${ITLC}You seek the key to a door that does not exist...${NC}"
+        ai_speak "You seek the key to a door that does not exist..."
         sleep 1s
-        ai_speak "${ITLC}Typical of your kind.${NC}"
+        ai_speak "Typical of your kind."
     fi
 }
