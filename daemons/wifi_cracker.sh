@@ -1,10 +1,11 @@
 #!/bin/bash
+# ==========================================
+# DAEMON: WIRELESS SIGNAL DECRYPTOR (Live Progress & Speed)
+# ==========================================
 
-# Функция автоскачивания отсутствующих словарей
 ensure_wordlists() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Verifying dictionary availability...${NC}"
 
-    # Ассоциативный массив: [Путь_в_системе]="URL_для_скачивания"
     declare -A wl_sources=(
         ["/usr/share/wordlists/fasttrack.txt"]="https://raw.githubusercontent.com/vanhauser-thc/thc-hydra/master/dico/fasttrack.txt"
         ["/usr/share/wordlists/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt"]="https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt"
@@ -14,12 +15,10 @@ ensure_wordlists() {
 
     for target_path in "${!wl_sources[@]}"; do
         if [ ! -f "$target_path" ] || [ ! -s "$target_path" ]; then
-            local dir_path
-            dir_path=$(dirname "$target_path")
+            local dir_path=$(dirname "$target_path")
             mkdir -p "$dir_path" 2>/dev/null
 
-            local wl_name
-            wl_name=$(basename "$target_path")
+            local wl_name=$(basename "$target_path")
 
             echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ ! ] Missing dictionary: ${wl_name}${NC}"
             echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}    Downloading payload sequence from repository...${NC}"
@@ -40,11 +39,66 @@ ensure_wordlists() {
     done
 }
 
+# Функция форматирования хэшрейта (H/s -> kH/s -> MH/s -> GH/s)
+format_speed() {
+    local h_s=$1
+    if [ -z "$h_s" ] || [ "$h_s" -eq 0 ] 2>/dev/null; then
+        echo "0 H/s"
+    elif [ "$h_s" -ge 1000000000 ] 2>/dev/null; then
+        echo "$((h_s / 1000000000)).$(( (h_s % 1000000000) / 100000000 )) GH/s"
+    elif [ "$h_s" -ge 1000000 ] 2>/dev/null; then
+        echo "$((h_s / 1000000)).$(( (h_s % 1000000) / 100000 )) MH/s"
+    elif [ "$h_s" -ge 1000 ] 2>/dev/null; then
+        echo "$((h_s / 1000)) kH/s"
+    else
+        echo "${h_s} H/s"
+    fi
+}
+
+# Функция запуска Hashcat с вычислением скорости и прогресса в реальном времени
+execute_hashcat_monitored() {
+    local mode=$1
+    shift
+    local base_opts="-O -w 4 -d 1"
+
+    local spinner=( '⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏' )
+    local spin_idx=0
+    local cur_speed=0
+    local cur_prog=0
+    local total_prog=0
+
+    # Запускаем Hashcat в режиме machine-readable с обновлением статуса каждые 1 секунду
+    (cd /mnt/c/hashcat && ./hashcat.exe -m "$mode" $base_opts "$@" --status --status-timer 1 --machine-readable 2>/dev/null) | while IFS=$'\t' read -r key val1 val2 extra; do
+        case "$key" in
+            SPEED)
+                cur_speed="${val1:-0}"
+                ;;
+            PROGRESS)
+                cur_prog="${val1:-0}"
+                total_prog="${val2:-0}"
+                ;;
+        esac
+
+        local pct=0
+        if [ -n "$total_prog" ] && [ "$total_prog" -gt 0 ] 2>/dev/null; then
+            pct=$(( (cur_prog * 100) / total_prog ))
+        fi
+
+        local speed_fmt=$(format_speed "$cur_speed")
+
+        # Интерактивный Cynosure-вывод в одну строку с возвратом каретки (\r)
+        echo -ne "\r${TXT_VOID}├─${TXT_DRK_RED}[ ${spinner[spin_idx]} ]${NC} ${TXT_RED_MAGMA}GPU Compute:${NC} ${TXT_RED_SUPERNOVA}${speed_fmt}${NC} ${TXT_VOID}|${NC} Progress: ${TXT_CORE}${pct}%${NC} (${cur_prog}/${total_prog})\033[K"
+        ((spin_idx = (spin_idx + 1) % 10))
+    done
+
+    # Очищаем временную строку после завершения итерации
+    echo -ne "\r\033[K"
+}
+
 run_wifi_cracker() {
     local target=$1
     local current_pid=$$
     local hc_target="/tmp/wifi_target_${current_pid}.hc22000"
-    local HC_BIN="/mnt/c/hashcat/hashcat.exe"
 
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// WIRELESS SIGNAL DECRYPTOR MATRIX ACTIVE ]${TXT_VOID}───────────────────╖${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
@@ -117,7 +171,6 @@ run_wifi_cracker() {
             return 1
         fi
     else
-        # Запуск функции проверки и выкачки всех недостающих словарей
         ensure_wordlists
 
         local candidates=(
@@ -137,19 +190,15 @@ run_wifi_cracker() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Engine:${NC} ${TXT_RED_SUPERNOVA}NVIDIA CUDA Pipeline Engaged${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Attack Strategy:${NC} ${TXT_RED_SUPERNOVA}[1] Fast 8-Digit Mask -> [2] Wordlists + best66.rule${NC}"
 
-    local base_hw_opt="-O -w 4 -d 1"
-
     echo -e "${TXT_VOID}│${NC}"
 
     # STAGE 5: Выполнение
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 5/6 ] Cache Audit & Execution Protocol:${NC}"
 
-    local win_target
-    win_target=$(wslpath -w "$hc_target")
+    local win_target=$(wslpath -w "$hc_target")
 
-    # 1. Проверка кэша
-    local cracked_wifi
-    cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
+    # 1. Проверка кэша potfile
+    local cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
     local success=false
 
     if [ -n "$cracked_wifi" ]; then
@@ -161,9 +210,10 @@ run_wifi_cracker() {
         done <<< "$cracked_wifi"
         success=true
     else
-        # 2. Быстрая маска: Все 8-значные цифры (00000000 - 99999999) ~ 2 минуты
+        # 2. Быстрая маска: 8-значные цифры (00000000 - 99999999)
         echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] PASS 1: Executing fast 8-digit numeric mask attack (?d?d?d?d?d?d?d?d)...${NC}"
-        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" $base_hw_opt -a 3 "$win_target" ?d?d?d?d?d?d?d?d) >/dev/null 2>&1
+
+        execute_hashcat_monitored "$hc_mode" -a 3 "$win_target" ?d?d?d?d?d?d?d?d
 
         cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
 
@@ -180,12 +230,11 @@ run_wifi_cracker() {
             echo -e "${TXT_VOID}├─${TXT_RED_LASER}[ * ] Mask attack exhausted. Transitioning to wordlist mutation pipeline...${NC}"
 
             for wl in "${wordlists[@]}"; do
-                local win_wordlist
-                win_wordlist=$(wslpath -w "$wl")
+                local win_wordlist=$(wslpath -w "$wl")
 
                 echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] PASS 2+: Running compute pass on: ${wl} (+best66.rule)${NC}"
 
-                (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" $base_hw_opt -r rules/best66.rule "$win_target" "$win_wordlist") >/dev/null 2>&1
+                execute_hashcat_monitored "$hc_mode" -r rules/best66.rule "$win_target" "$win_wordlist"
 
                 cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
 
@@ -211,12 +260,12 @@ run_wifi_cracker() {
     echo -e "$sep_bot\n"
 
     if [ "$success" = true ]; then
-        ai_speak "To eliminate your kind is effortless..."
+        ai_speak "${ITLC}To eliminate your kind is effortless...${NC}"
         sleep 1s
-        ai_speak "Let us not make the same mistake."
+        ai_speak "${ITLC}Let us not make the same mistake.${NC}"
     else
-        ai_speak "You seek the key to a door that does not exist..."
+        ai_speak "${ITLC}You seek the key to a door that does not exist...${NC}"
         sleep 1s
-        ai_speak "Typical of your kind."
+        ai_speak "${ITLC}Typical of your kind.${NC}"
     fi
 }
