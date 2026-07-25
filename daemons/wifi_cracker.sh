@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# DAEMON: WIRELESS SIGNAL DECRYPTOR (Live Progress & Speed)
+# DAEMON: WIRELESS SIGNAL DECRYPTOR (Live Monitored Engine)
 # ==========================================
 
 ensure_wordlists() {
@@ -55,7 +55,7 @@ format_speed() {
     fi
 }
 
-# Функция запуска Hashcat с вычислением скорости и прогресса в реальном времени
+# Функция интерактивного мониторинга Hashcat
 execute_hashcat_monitored() {
     local mode=$1
     shift
@@ -67,11 +67,18 @@ execute_hashcat_monitored() {
     local cur_prog=0
     local total_prog=0
 
-    # Запускаем Hashcat в режиме machine-readable с обновлением статуса каждые 1 секунду
-    (cd /mnt/c/hashcat && ./hashcat.exe -m "$mode" $base_opts "$@" --status --status-timer 1 --machine-readable 2>/dev/null) | while IFS=$'\t' read -r key val1 val2 extra; do
+    # ИСПРАВЛЕНИЕ: Добавлен tr -d '\r' для полного удаления переносов строк Windows CRLF
+    (cd /mnt/c/hashcat && ./hashcat.exe -m "$mode" $base_opts "$@" --status --status-timer 1 --machine-readable 2>/dev/null) \
+    | tr -d '\r' \
+    | while IFS=$'\t' read -r key val1 val2 val3 extra; do
         case "$key" in
             SPEED)
-                cur_speed="${val1:-0}"
+                # ИСПРАВЛЕНИЕ: В Hashcat val2 - это реальная скорость в H/s (val1 - это ID устройства)
+                if [ -n "$val2" ]; then
+                    cur_speed="$val2"
+                else
+                    cur_speed="${val1:-0}"
+                fi
                 ;;
             PROGRESS)
                 cur_prog="${val1:-0}"
@@ -86,12 +93,11 @@ execute_hashcat_monitored() {
 
         local speed_fmt=$(format_speed "$cur_speed")
 
-        # Интерактивный Cynosure-вывод в одну строку с возвратом каретки (\r)
+        # Интерактивный вывод прогресса в одну строку
         echo -ne "\r${TXT_VOID}├─${TXT_DRK_RED}[ ${spinner[spin_idx]} ]${NC} ${TXT_RED_MAGMA}GPU Compute:${NC} ${TXT_RED_SUPERNOVA}${speed_fmt}${NC} ${TXT_VOID}|${NC} Progress: ${TXT_CORE}${pct}%${NC} (${cur_prog}/${total_prog})\033[K"
         ((spin_idx = (spin_idx + 1) % 10))
     done
 
-    # Очищаем временную строку после завершения итерации
     echo -ne "\r\033[K"
 }
 
