@@ -1,5 +1,45 @@
 #!/bin/bash
 
+# Функция автоскачивания отсутствующих словарей
+ensure_wordlists() {
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Verifying dictionary availability...${NC}"
+
+    # Ассоциативный массив: [Путь_в_системе]="URL_для_скачивания"
+    declare -A wl_sources=(
+        ["/usr/share/wordlists/fasttrack.txt"]="https://raw.githubusercontent.com/vanhauser-thc/thc-hydra/master/dico/fasttrack.txt"
+        ["/usr/share/wordlists/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt"]="https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt"
+        ["/usr/share/wordlists/metasploit/default_pass.txt"]="https://raw.githubusercontent.com/rapid7/metasploit-framework/master/data/wordlists/default_pass.txt"
+        ["/usr/share/wordlists/rockyou.txt"]="https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt"
+    )
+
+    for target_path in "${!wl_sources[@]}"; do
+        if [ ! -f "$target_path" ] || [ ! -s "$target_path" ]; then
+            local dir_path
+            dir_path=$(dirname "$target_path")
+            mkdir -p "$dir_path" 2>/dev/null
+
+            local wl_name
+            wl_name=$(basename "$target_path")
+
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ ! ] Missing dictionary: ${wl_name}${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}    Downloading payload sequence from repository...${NC}"
+
+            if command -v curl >/dev/null 2>&1; then
+                curl -sL "${wl_sources[$target_path]}" -o "$target_path"
+            elif command -v wget >/dev/null 2>&1; then
+                wget -q "${wl_sources[$target_path]}" -O "$target_path"
+            fi
+
+            if [ -s "$target_path" ]; then
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}[ ++ ] Successfully synchronized: ${wl_name}${NC}"
+            else
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ - ] Failed to download ${wl_name}. Skipping.${NC}"
+                rm -f "$target_path" 2>/dev/null
+            fi
+        fi
+    done
+}
+
 run_wifi_cracker() {
     local target=$1
     local current_pid=$$
@@ -59,8 +99,8 @@ run_wifi_cracker() {
         hc_mode=2500
     fi
 
-    # STAGE 3: Картографирование словарей
-    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 3/6 ] Wordlist Dictionary Mapping:${NC}"
+    # STAGE 3: Картографирование и автозагрузка словарей
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 3/6 ] Wordlist Dictionary Mapping & Sync Protocol:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Specify custom wordlist OR leave empty for multi-dictionary sequence.${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
     read -r user_wordlist
@@ -77,6 +117,9 @@ run_wifi_cracker() {
             return 1
         fi
     else
+        # Запуск функции проверки и выкачки всех недостающих словарей
+        ensure_wordlists
+
         local candidates=(
             "/usr/share/wordlists/rockyou.txt"
             "/usr/share/wordlists/fasttrack.txt"
@@ -84,7 +127,7 @@ run_wifi_cracker() {
             "/usr/share/wordlists/metasploit/default_pass.txt"
         )
         for wl in "${candidates[@]}"; do
-            [ -f "$wl" ] && wordlists+=("$wl")
+            [ -f "$wl" ] && [ -s "$wl" ] && wordlists+=("$wl")
         done
     fi
 
