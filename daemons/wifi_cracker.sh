@@ -135,7 +135,7 @@ run_wifi_cracker() {
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 4/6 ] Hardware Acceleration & Attack Pipeline Initialization:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Detected Rig:${NC} ${TXT_RED_SUPERNOVA}NVIDIA RTX 5060 Ti (16GB) Detected${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Engine:${NC} ${TXT_RED_SUPERNOVA}NVIDIA CUDA Pipeline Engaged${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Attack Strategy:${NC} ${TXT_RED_SUPERNOVA}[1] Fast 8-Digit Mask -> [2] Wordlists + best64.rule${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Attack Strategy:${NC} ${TXT_RED_SUPERNOVA}[1] Fast 8-Digit Mask -> [2] Wordlists + best66.rule${NC}"
 
     local base_hw_opt="-O -w 4 -d 1"
 
@@ -176,16 +176,16 @@ run_wifi_cracker() {
             done <<< "$cracked_wifi"
             success=true
         else
-            # 3. Перебор по словарям с мутациями best64
+            # 3. Перебор по словарям с мутациями best66
             echo -e "${TXT_VOID}├─${TXT_RED_LASER}[ * ] Mask attack exhausted. Transitioning to wordlist mutation pipeline...${NC}"
 
             for wl in "${wordlists[@]}"; do
                 local win_wordlist
                 win_wordlist=$(wslpath -w "$wl")
 
-                echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] PASS 2+: Running compute pass on: ${wl} (+best64.rule)${NC}"
+                echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] PASS 2+: Running compute pass on: ${wl} (+best66.rule)${NC}"
 
-                (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" $base_hw_opt -r rules/best64.rule "$win_target" "$win_wordlist") >/dev/null 2>&1
+                (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" $base_hw_opt -r rules/best66.rule "$win_target" "$win_wordlist") >/dev/null 2>&1
 
                 cracked_wifi=$(cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null)
 

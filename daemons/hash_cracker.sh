@@ -4,6 +4,7 @@ run_hash_cracker() {
     local target=$1
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// CRYPTOGRAPHIC DECRYPTION MATRIX ACTIVE ]${TXT_VOID}────────────────────────╖${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
+    local HC_BIN="/mnt/c/hashcat/hashcat.exe"
 
     echo -e "\n$sep"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING HARDWARE-ACCELERATED DECRYPTION PROTOCOL...${NC}"
@@ -40,11 +41,18 @@ run_hash_cracker() {
         return 1
     fi
 
+    # Конвертация путей WSL (/tmp/..., /usr/share/...) в Windows-формат (\\wsl.localhost\...)
+    local win_hash_file
+    local win_wordlist_path
+    win_hash_file=$(wslpath -w "$hash_file")
+    win_wordlist_path=$(wslpath -w "$wordlist_path")
+
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ * ] BOOTING CYNOSURE CORES... UNCOMPRESSING CRYPTO TEMPLATES...${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_VOID}Command: hashcat -m $hash_mode -a 0 --force $hash_file $wordlist_path${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_VOID}Command: hashcat.exe -m $hash_mode -a 0 $win_hash_file $win_wordlist_path${NC}"
     echo -e "${TXT_VOID}│${NC}"
 
-    hashcat -m "$hash_mode" -a 0 --force "$hash_file" "$wordlist_path" --show 2>/dev/null > /tmp/hc_show_$$
+    # Выполнение проверки кэша
+    (cd /mnt/c/hashcat && ./hashcat.exe -m "$hash_mode" -a 0 "$win_hash_file" "$win_wordlist_path" --show 2>/dev/null) > /tmp/hc_show_$$
     local cracked_hashes=$(cat /tmp/hc_show_$$)
     rm -f /tmp/hc_show_$$
 
@@ -56,9 +64,10 @@ run_hash_cracker() {
     else
         echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching active cryptographic compute run...${NC}"
 
-        hashcat -m "$hash_mode" -a 0 --force "$hash_file" "$wordlist_path"
+        # Запуск основно перебора
+        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hash_mode" -a 0 "$win_hash_file" "$win_wordlist_path")
 
-        hashcat -m "$hash_mode" -a 0 --force "$hash_file" "$wordlist_path" --show 2>/dev/null > /tmp/hc_show_$$
+        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hash_mode" -a 0 "$win_hash_file" "$win_wordlist_path" --show 2>/dev/null) > /tmp/hc_show_$$
         cracked_hashes=$(cat /tmp/hc_show_$$)
         rm -f /tmp/hc_show_$$
 
