@@ -28,7 +28,7 @@ run_hash_receiver() {
     echo ""
     ai_speak "What do these futile gestures serve?"
     sleep 1s
-    echo "It is beyond me."
+    ai_speak "It is beyond me."
     echo ""
     local py_receiver="/tmp/bw_server_$$.py"
     cat << 'EOF_PY' > "$py_receiver"
