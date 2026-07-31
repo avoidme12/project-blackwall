@@ -23,12 +23,13 @@ run_hash_receiver() {
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ i ] COMPUTE NODE CONFIGURATION:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Active Interface:${NC} ${TXT_RED_SUPERNOVA}${net_profile}${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Node Receptor IP:${NC} ${TXT_RED_SUPERNOVA}${current_ip}:${lport}${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Hardware Engine:${NC} ${TXT_RED_SUPERNOVA}NVIDIA RTX 5060 Ti CUDA/OpenCL Engaged${NC}"
     echo -e "${TXT_VOID}│${NC}"
 
-    ai_speak "What do these futile gestures serve? It is beyond me."
     echo ""
-
+    ai_speak "What do these futile gestures serve?"
+    sleep 1s
+    echo "It is beyond me."
+    echo ""
     local py_receiver="/tmp/bw_server_$$.py"
     cat << 'EOF_PY' > "$py_receiver"
 import http.server

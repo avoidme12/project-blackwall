@@ -18,7 +18,7 @@ source "${BASE_DIR}/daemons/hash_cracker.sh"
 source "${BASE_DIR}/daemons/wifi_cracker.sh"
 source "${BASE_DIR}/daemons/hash_receiver.sh" # Подключен слушатель
 
-if (( EUID != 0 )); then
+if (( EUID != 0 )) && [ -z "$TERMUX_VERSION" ]; then
     echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
     exit 1
 fi
