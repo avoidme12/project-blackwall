@@ -51,6 +51,10 @@ TXT_SCARLET = "\033[38;2;255;80;80m"
 TXT_B_ALARM = "\033[1;38;2;255;65;0m"
 NC = "\033[0m\033[38;2;130;20;30m"
 
+# Разрешаем повторное мгновенное использование порта 9999 при перезапусках
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
+
 class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
@@ -85,28 +89,44 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                     f.write(file_content)
 
                 print(f"{TXT_VOID}├─{TXT_B_ALARM}[ ++ ] REMOTE TASK INGESTED:{NC} {TXT_RED_SUPERNOVA}{filename}{NC}")
-                print(f"{TXT_VOID}║   {TXT_RED_PLASMA}MX:// STREAMING COMPUTATIONAL TELEMETRY TO CLIENT...{NC}")
+                print(f"{TXT_VOID}║   {TXT_RED_PLASMA}MX:// EXECUTING 6-STAGE PIPELINE VIA CYNOSURE DAEMON...{NC}")
                 sys.stdout.flush()
 
-                # Формируем команду вызова конвейера дешифрования
                 bash_cmd = f"bash -c 'source \"{BASE_DIR}/core/colors.sh\" && source \"{BASE_DIR}/core/ui.sh\" && source \"{BASE_DIR}/core/state.sh\" && source \"{BASE_DIR}/daemons/wifi_cracker.sh\" && run_wifi_crack_pipeline \"{filepath}\"'"
 
-                pipe = subprocess.Popen(bash_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1)
+                # Исправление warning Python 3.14+: текстовый режим с буферизацией строк (text=True, bufsize=1)
+                pipe = subprocess.Popen(bash_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/plain; charset=utf-8')
                 self.end_headers()
 
-                # Стримим вывод (включая STAT|...) клиенту в реальном времени!
-                for raw_line in iter(pipe.stdout.readline, b''):
-                    self.wfile.write(raw_line)
+                recovered_password = None
+
+                # Стримим телеметрию клиенту и одновременно ищем результат дешифрования
+                for line in iter(pipe.stdout.readline, ''):
+                    line_clean = line.strip()
+                    if "SUCCESS:" in line_clean:
+                        recovered_password = line_clean.split("SUCCESS:")[-1].strip()
+
+                    # Пересылаем строчку клиенту (ноутбуку/телефону)
+                    self.wfile.write(line.encode('utf-8'))
                     self.wfile.flush()
 
                 pipe.stdout.close()
                 pipe.wait()
 
-                print(f"{TXT_VOID}├─{TXT_SCARLET}[ ++ ] TASK EXECUTION COMPLETED.{NC}\n")
+                # Вывод найденного пароля в консоль сервера ПК
+                if recovered_password:
+                    response_msg = f"SUCCESS:{recovered_password}\n"
+                    print(f"{TXT_VOID}├─{TXT_SCARLET}[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:{NC}")
+                    print(f"{TXT_VOID}║   {TXT_RED_SUPERNOVA}PASSWORD -> [ {recovered_password} ]{NC}\n")
+                else:
+                    response_msg = "FAILED:EXHAUSTED\n"
+                    print(f"{TXT_VOID}├─{TXT_RED_HELLFIRE}[ - ] REMOTE DECRYPTION EXHAUSTED. Key not found.{NC}\n")
+
                 sys.stdout.flush()
+                self.wfile.write(response_msg.encode('utf-8'))
 
             except Exception as e:
                 print(f"{TXT_VOID}║   {TXT_RED_HELLFIRE}[ ! ] EXCEPTION DURING PROCESS: {e}{NC}")
@@ -117,7 +137,7 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
-with socketserver.TCPServer(("", PORT), UploadAndCrackHandler) as httpd:
+with ReusableTCPServer(("", PORT), UploadAndCrackHandler) as httpd:
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

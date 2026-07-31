@@ -62,6 +62,9 @@ clean_exit() {
         kill "${STATE[web_server_pid]}" 2>/dev/null
     fi
 
+    fuser -k 9999/tcp 2>/dev/null
+    pkill -f "bw_server_" 2>/dev/null
+
     if [ -n "${STATE[target_domain]}" ]; then
             sed -i "/[[:space:]]${STATE[target_domain]}$/d" /etc/hosts 2>/dev/null
     fi
