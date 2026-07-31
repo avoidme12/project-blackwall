@@ -8,6 +8,11 @@ run_hash_receiver() {
     local recv_dir="${BASE_DIR}/core/received_hashes"
     mkdir -p "$recv_dir" 2>/dev/null
 
+    ai_speak "What do these futile gestures serve?"
+    sleep 1s
+    ai_speak "It is beyond me..."
+    echo ""
+
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// SHADOW SIGNAL RECEIVER & COMPUTE NODE ACTIVE ]${TXT_VOID}─────────────╖${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
 
@@ -24,9 +29,6 @@ run_hash_receiver() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Active Interface:${NC} ${TXT_RED_SUPERNOVA}${net_profile}${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Node Receptor IP:${NC} ${TXT_RED_SUPERNOVA}${current_ip}:${lport}${NC}"
     echo -e "${TXT_VOID}│${NC}"
-
-    ai_speak "${ITLC}Cynosure compute node online. Awaiting remote transmission streams...${NC}"
-    echo ""
 
     # Python HTTP Сервер с раскраской вывода и подавлением лишних HTTP логов
     local py_receiver="/tmp/bw_server_$$.py"
