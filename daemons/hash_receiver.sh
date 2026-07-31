@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# DAEMON: SHADOW SIGNAL RECEIVER & REMOTE CRACKER (Cynosure Server)
+# DAEMON: SHADOW SIGNAL RECEIVER & REMOTE CRACKER (Cynosure Color Server)
 # ==========================================
 
 run_hash_receiver() {
@@ -25,11 +25,10 @@ run_hash_receiver() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Node Receptor IP:${NC} ${TXT_RED_SUPERNOVA}${current_ip}:${lport}${NC}"
     echo -e "${TXT_VOID}│${NC}"
 
+    ai_speak "${ITLC}Cynosure compute node online. Awaiting remote transmission streams...${NC}"
     echo ""
-    ai_speak "What do these futile gestures serve?"
-    sleep 1s
-    ai_speak "It is beyond me."
-    echo ""
+
+    # Python HTTP Сервер с раскраской вывода и подавлением лишних HTTP логов
     local py_receiver="/tmp/bw_server_$$.py"
     cat << 'EOF_PY' > "$py_receiver"
 import http.server
@@ -42,7 +41,21 @@ PORT = int(sys.argv[1])
 SAVE_DIR = sys.argv[2]
 BASE_DIR = sys.argv[3]
 
+# ANSI-палитра Cynosure для Python
+TXT_VOID = "\033[38;2;60;10;15m"
+TXT_RED_PLASMA = "\033[38;2;255;0;0m"
+TXT_RED_SUPERNOVA = "\033[38;2;255;180;180m"
+TXT_RED_MAGMA = "\033[38;2;255;130;130m"
+TXT_RED_HELLFIRE = "\033[38;2;255;0;55m"
+TXT_SCARLET = "\033[38;2;255;80;80m"
+TXT_B_ALARM = "\033[1;38;2;255;65;0m"
+NC = "\033[0m\033[38;2;130;20;30m"
+
 class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, format, *args):
+        # Отключаем стандартный спам логов HTTP запросов (например: "POST /upload_and_crack HTTP/1.1 200")
+        pass
+
     def do_POST(self):
         if self.path.startswith('/upload') or self.path.startswith('/upload_and_crack'):
             try:
@@ -52,7 +65,6 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                 filename = "remote_capture.hc22000"
                 file_content = raw_data
 
-                # Разбор multipart/form-data напрямую без модуля cgi
                 boundary = self.headers.get_boundary()
                 if boundary:
                     b_boundary = boundary.encode('utf-8')
@@ -73,10 +85,10 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                 with open(filepath, 'wb') as f:
                     f.write(file_content)
 
-                print(f"[+] RECEIVED REMOTE TASK: {filename}. INITIATING CRACKING PIPELINE...")
+                print(f"{TXT_VOID}├─{TXT_B_ALARM}[ ++ ] REMOTE TASK INGESTED:{NC} {TXT_RED_SUPERNOVA}{filename}{NC}")
+                print(f"{TXT_VOID}║   {TXT_RED_PLASMA}MX:// INITIATING HARDWARE DECRYPTION PIPELINE...{NC}")
                 sys.stdout.flush()
 
-                # Копируем файл на диск C:\ для корректной работы Windows Hashcat
                 win_work_dir = "/mnt/c/hashcat/work"
                 os.makedirs(win_work_dir, exist_ok=True)
                 win_file_dest = os.path.join(win_work_dir, filename)
@@ -90,14 +102,12 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                 cmd_mask = f"cd /mnt/c/hashcat && ./hashcat.exe -m 22000 -w 3 -a 3 {win_target} ?d?d?d?d?d?d?d?d -q"
                 subprocess.run(cmd_mask, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
 
-                # Проверяем результат
                 cmd_show = f"cd /mnt/c/hashcat && ./hashcat.exe -m 22000 {win_target} --show"
                 show_res = subprocess.check_output(cmd_show, shell=True, stderr=subprocess.DEVNULL).decode('utf-8', errors='ignore').strip()
 
                 if not show_res:
                     # 2. Если маска не помогла, прогоняем rockyou
                     rockyou_win = "C:\\\\hashcat\\\\work\\\\rockyou.txt"
-                    # Копируем rockyou на C:\ при необходимости
                     if not os.path.exists("/mnt/c/hashcat/work/rockyou.txt") and os.path.exists("/usr/share/wordlists/rockyou.txt"):
                         subprocess.run("cp /usr/share/wordlists/rockyou.txt /mnt/c/hashcat/work/rockyou.txt", shell=True)
 
@@ -109,19 +119,19 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
 
                 if show_res:
-                    # Извлекаем чистый пароль без символов каретки \r
                     password = show_res.split(':')[-1].replace('\r', '').strip()
                     response_msg = f"SUCCESS:{password}"
-                    print(f"[++] TASK COMPLETED! PASSWORD RECOVERED: {password}")
+                    print(f"{TXT_VOID}├─{TXT_SCARLET}[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:{NC}")
+                    print(f"{TXT_VOID}║   {TXT_RED_SUPERNOVA}PASSWORD -> [ {password} ]{NC}\n")
                 else:
                     response_msg = "FAILED:EXHAUSTED"
-                    print("[-] TASK COMPLETED. KEY NOT FOUND.")
+                    print(f"{TXT_VOID}├─{TXT_RED_HELLFIRE}[ - ] REMOTE DECRYPTION EXHAUSTED. Key not found.{NC}\n")
 
                 sys.stdout.flush()
                 self.wfile.write(response_msg.encode('utf-8'))
 
             except Exception as e:
-                print(f"[!] EXCEPTION DURING UPLOAD/CRACK: {e}")
+                print(f"{TXT_VOID}║   {TXT_RED_HELLFIRE}[ ! ] EXCEPTION DURING PROCESS: {e}{NC}")
                 sys.stdout.flush()
                 self.send_response(500)
                 self.end_headers()
