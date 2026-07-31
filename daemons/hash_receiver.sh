@@ -8,6 +8,11 @@ run_hash_receiver() {
     local recv_dir="${BASE_DIR}/core/received_hashes"
     mkdir -p "$recv_dir" 2>/dev/null
 
+    ai_speak "What do these futile gestures serve?"
+    sleep 0.5s
+    ai_speak "It is beyond me."
+    echo ""
+
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// SHADOW SIGNAL RECEIVER & COMPUTE NODE ACTIVE ]${TXT_VOID}─────────────╖${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
 
@@ -25,9 +30,6 @@ run_hash_receiver() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Node Receptor IP:${NC} ${TXT_RED_SUPERNOVA}${current_ip}:${lport}${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Hardware Engine:${NC} ${TXT_RED_SUPERNOVA}NVIDIA RTX 5060 Ti CUDA Engaged${NC}"
     echo -e "${TXT_VOID}│${NC}"
-
-    ai_speak "Cynosure compute node online. Awaiting remote transmission streams..."
-    echo ""
 
     # Python HTTP Сервер, интегрированный с run_wifi_crack_pipeline
     local py_receiver="/tmp/bw_server_$$.py"

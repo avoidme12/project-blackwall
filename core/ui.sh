@@ -126,19 +126,19 @@ ai_speak() {
         case "$char" in
             ".")
                 if [[ "${text:$i:3}" == "..." ]]; then
-                    sleep 0.4
+                    sleep 0.2
                 else
-                    sleep 0.6
+                    sleep 0.3
                 fi
                 ;;
             ","|";"|":"|"-")
                 sleep 0.3
                 ;;
             " ")
-                sleep 0.08
+                sleep 0.04
                 ;;
             *)
-                sleep 0.03
+                sleep 0.015
                 ;;
         esac
     done
