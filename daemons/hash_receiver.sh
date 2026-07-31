@@ -92,10 +92,9 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                 print(f"{TXT_VOID}║   {TXT_RED_PLASMA}MX:// EXECUTING 6-STAGE PIPELINE VIA CYNOSURE DAEMON...{NC}")
                 sys.stdout.flush()
 
-                bash_cmd = f"bash -c 'source \"{BASE_DIR}/core/colors.sh\" && source \"{BASE_DIR}/core/ui.sh\" && source \"{BASE_DIR}/core/state.sh\" && source \"{BASE_DIR}/daemons/wifi_cracker.sh\" && run_wifi_crack_pipeline \"{filepath}\"'"
-
+                bash_cmd = f"stdbuf -oL -eL bash -c 'source \"{BASE_DIR}/core/colors.sh\" && source \"{BASE_DIR}/core/ui.sh\" && source \"{BASE_DIR}/core/state.sh\" && source \"{BASE_DIR}/daemons/wifi_cracker.sh\" && run_wifi_crack_pipeline \"{filepath}\"'"
                 # Исправление warning Python 3.14+: текстовый режим с буферизацией строк (text=True, bufsize=1)
-                pipe = subprocess.Popen(bash_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+                pipe = subprocess.Popen(bash_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
 
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/plain; charset=utf-8')
