@@ -83,7 +83,6 @@ run_wifi_cracker() {
     local target=$1
     local current_pid=$$
     local hc_target="/tmp/wifi_target_${current_pid}.hc22000"
-    local HC_BIN_DIR="/mnt/c/hashcat"
 
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// WIRELESS SIGNAL DECRYPTOR MATRIX ACTIVE ]${TXT_VOID}───────────────────╖${NC}"
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
@@ -91,6 +90,7 @@ run_wifi_cracker() {
     echo -e "\n$sep"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
 
+    # STAGE 1: Ввод файла
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 1/6 ] Ingest Target Capture Image (.cap, .pcapng, .hc22000):${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
     read -r cap_file
@@ -101,7 +101,43 @@ run_wifi_cracker() {
         return 1
     fi
 
-    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] PMKID / EAPOL Handshake Extraction Matrix:${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] Select Compute Processing Node:${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Local Laptop Compute (Local Hashcat)${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[2] Remote Cynosure Core Node${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Mode [1/2]: ${NC}"
+    read -r compute_mode
+
+    if [ "$compute_mode" == "2" ]; then
+        echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ REMOTE NODE ] Enter Desktop Tailscale IP (e.g. 100.x.y.z):${NC}"
+        echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Desktop IP: ${NC}"
+        read -r desktop_ip
+
+        if [ -z "$desktop_ip" ]; then
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Remote Desktop IP is required.${NC}"
+            echo -e "$sep_bot\n"
+            return 1
+        fi
+
+        echo -e "${TXT_VOID}├─${TXT_RED_PLASMA}[ * ] Offloading handshake payload to remote Cynosure Node (${desktop_ip}:9999)...${NC}"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}Awaiting remote GPU execution stream...${NC}"
+
+        # Отправка файла по сети и ожидание ответа в формате SUCCESS:password
+        local remote_response
+        remote_response=$(curl -s -F "file=@${cap_file}" "http://${desktop_ip}:9999/upload_and_crack")
+
+        if [[ "$remote_response" == SUCCESS:* ]]; then
+            local clear_pass="${remote_response#SUCCESS:}"
+            echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
+            echo -e "$sep_bot\n"
+            ai_speak "${ITLC}To eliminate your kind is effortless... Let us not make the same mistake.${NC}"
+        else
+            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] REMOTE DECRYPTION EXHAUSTED. Key not found in primary dictionary streams.${NC}"
+            echo -e "$sep_bot\n"
+            ai_speak "${ITLC}You seek the key to a door that does not exist... Typical of your kind.${NC}"
+        fi
+        return 0
+    fi
 
     if [[ "$cap_file" == *.hc22000 ]]; then
         cp "$cap_file" "$hc_target"

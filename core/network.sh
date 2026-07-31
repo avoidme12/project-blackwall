@@ -1,21 +1,40 @@
 #!/bin/bash
+# ==========================================
+# CORE: NETWORK UTILITIES & TAILSCALE AUTO-DETECTION
+# ==========================================
 
 detect_local_ip() {
+    # 1. Проверяем интерфейс tun0 (Hack The Box VPN)
     local vpn_ip=$(ip -o -4 addr show dev tun0 2>/dev/null | awk '{print $4}' | cut -d/ -f1)
-
     if [ -n "$vpn_ip" ]; then
         STATE[lhost]="$vpn_ip"
+        STATE[net_type]="HTB VPN (tun0)"
         return 0
     fi
 
-    local default_ip=$(ip -o -4 addr show | grep -vE '127.0.0.1|tun0' | head -n 1 | awk '{print $4}' | cut -d/ -f1)
+    # 2. Проверяем интерфейс Tailscale (tailscale0 или диапазон 100.x.x.x)
+    local ts_ip=$(ip -o -4 addr show dev tailscale0 2>/dev/null | awk '{print $4}' | cut -d/ -f1)
+    if [ -z "$ts_ip" ]; then
+        # Резервный поиск IP из диапазона Tailscale (100.64.0.0/10)
+        ts_ip=$(ip -o -4 addr show | grep -E 'inet 100\.' | awk '{print $4}' | cut -d/ -f1 | head -n 1)
+    fi
 
+    if [ -n "$ts_ip" ]; then
+        STATE[lhost]="$ts_ip"
+        STATE[net_type]="TAILSCALE MESH (tailscale0)"
+        return 0
+    fi
+
+    # 3. Резервный поиск локального IP (LAN/Wi-Fi)
+    local default_ip=$(ip -o -4 addr show | grep -vE '127.0.0.1|tun0|tailscale' | head -n 1 | awk '{print $4}' | cut -d/ -f1)
     if [ -n "$default_ip" ]; then
         STATE[lhost]="$default_ip"
+        STATE[net_type]="LOCAL LAN"
         return 0
     fi
 
     STATE[lhost]="127.0.0.1"
+    STATE[net_type]="LOOPBACK"
 }
 
 configure_network_parameters() {
@@ -26,6 +45,7 @@ configure_network_parameters() {
 
     echo -e "\n$sep"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// TUNING EXTRATERRESTRIAL SYNAPSE PARAMETERS...${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Detected Network Profile:${NC} ${TXT_RED_SUPERNOVA}${STATE[net_type]}${NC}"
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Confirm LHOST (Local Interface IP):${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Current [${TXT_RED_SUPERNOVA}${STATE[lhost]}${TXT_RED_MAGMA}] (Press Enter or type new IP): ${NC}"
     read -r user_ip
