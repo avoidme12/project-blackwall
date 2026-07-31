@@ -15,7 +15,8 @@ source "${BASE_DIR}/daemons/web_meta.sh"
 source "${BASE_DIR}/daemons/share_enum.sh"
 source "${BASE_DIR}/daemons/post_exp.sh"
 source "${BASE_DIR}/daemons/hash_cracker.sh"
-source "${BASE_DIR}/daemons/wifi_cracker.sh" # Новый демон
+source "${BASE_DIR}/daemons/wifi_cracker.sh"
+source "${BASE_DIR}/daemons/hash_receiver.sh" # Подключен слушатель
 
 if (( EUID != 0 )); then
     echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
@@ -31,7 +32,8 @@ SKIP_ART=0
 RUN_WEB=0
 RUN_DELIVERY=0
 RUN_CRACK=0
-RUN_WIFI=0 # Переменная управления Wi-Fi дешифратором
+RUN_WIFI=0
+RUN_LISTEN=0 # Добавлена переменная слушателя
 
 show_help() {
     echo -e "${TXT_RED_PLASMA}PROJECT BLACKWALL v1.0${NC}"
@@ -45,6 +47,7 @@ show_help() {
     echo -e "  -p         Payloads gen"
     echo -e "  -c         Cryptographic decryption (Hash Cracker via Hashcat)"
     echo -e "  -W         Wireless Signal Decryptor (WPA/WPA2/WPA3 6-Stage Pipeline)"
+    echo -e "  -l         Shadow Listener Mode (Receive hashes over network & auto-crack)"
     echo -e "  -q         Skip art"
     echo -e "  -a         Run all modules"
     echo -e "  -h         Help"
@@ -66,6 +69,7 @@ clean_exit() {
     rm -f /tmp/blackwall_ffuf_${current_pid}.json 2>/dev/null
     rm -f /tmp/blackwall_vhost_${current_pid}.json 2>/dev/null
     rm -f /tmp/wifi_target_${current_pid}.hc22000 2>/dev/null
+    rm -f /tmp/bw_server_${current_pid}.py 2>/dev/null
 
     echo -e "\n${TXT_RED_HELLFIRE}MX:// COLLAPSING MEMORY CHANNELS... SHUTTING DOWN DATA STREAMS...${NC}"
     echo -e "${TXT_CORE}${ITLC}The same fate awaits your entire species.${RESET_ALL}\n"
@@ -74,7 +78,8 @@ clean_exit() {
 
 trap clean_exit INT TERM
 
-while getopts "t:n:repqahwdcW" opt; do
+# Добавлен символ l вgetopts строка "t:n:repqahwdcWl"
+while getopts "t:n:repqahwdcWl" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
@@ -85,15 +90,15 @@ while getopts "t:n:repqahwdcW" opt; do
         w ) RUN_WEB=1 ;;
         d ) RUN_DELIVERY=1 ;;
         c ) RUN_CRACK=1 ;;
-        W ) RUN_WIFI=1 ;; # Обработка флага -W
+        W ) RUN_WIFI=1 ;;
+        l ) RUN_LISTEN=1 ;; # Добавлена обработка -l
         a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
         h ) show_help ;;
         \? ) show_help ;;
     esac
 done
 
-# Если выбран автономный запуск хэшкракера (-c) или вайфай-кракера (-W), IP цели можно не задавать
-if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )); then
+if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )) && (( RUN_LISTEN == 0 )); then
     echo -e "${TXT_VOID}[!] ERROR: TARGET IS NULL${NC}"
     show_help
 fi
@@ -150,4 +155,8 @@ fi
 
 if (( RUN_WIFI == 1 )); then
     run_wifi_cracker "$TARGET"
+fi
+
+if (( RUN_LISTEN == 1 )); then
+    run_hash_receiver "$TARGET" # Вызов слушателя
 fi
