@@ -26,15 +26,13 @@ run_hash_receiver() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Hardware Engine:${NC} ${TXT_RED_SUPERNOVA}NVIDIA RTX 5060 Ti CUDA/OpenCL Engaged${NC}"
     echo -e "${TXT_VOID}│${NC}"
 
-    ai_speak "${ITLC}Cynosure compute node online. Awaiting remote transmission streams...${NC}"
+    ai_speak "What do these futile gestures serve? It is beyond me."
     echo ""
 
-    # Python HTTP сервер, который принимает файл, запускает Hashcat и возвращает результат
     local py_receiver="/tmp/bw_server_$$.py"
     cat << 'EOF_PY' > "$py_receiver"
 import http.server
 import socketserver
-import cgi
 import os
 import sys
 import subprocess
@@ -45,26 +43,47 @@ BASE_DIR = sys.argv[3]
 
 class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
-        if self.path == '/upload_and_crack':
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={'REQUEST_METHOD': 'POST',
-                         'CONTENT_TYPE': self.headers['Content-Type']}
-            )
-            if 'file' in form:
-                file_item = form['file']
-                filename = os.path.basename(file_item.filename)
-                filepath = os.path.join(SAVE_DIR, filename)
+        if self.path.startswith('/upload') or self.path.startswith('/upload_and_crack'):
+            try:
+                length = int(self.headers.get('Content-Length', 0))
+                raw_data = self.rfile.read(length)
 
+                filename = "remote_capture.hc22000"
+                file_content = raw_data
+
+                # Разбор multipart/form-data напрямую без модуля cgi
+                boundary = self.headers.get_boundary()
+                if boundary:
+                    b_boundary = boundary.encode('utf-8')
+                    parts = raw_data.split(b_boundary)
+                    for part in parts:
+                        if b'filename="' in part:
+                            header_part, content = part.split(b'\r\n\r\n', 1)
+                            content = content.rsplit(b'\r\n', 1)[0]
+                            for line in header_part.split(b'\r\n'):
+                                if b'filename="' in line:
+                                    fn = line.split(b'filename="')[1].split(b'"')[0].decode('utf-8', errors='ignore')
+                                    if fn:
+                                        filename = os.path.basename(fn)
+                            file_content = content
+                            break
+
+                filepath = os.path.join(SAVE_DIR, filename)
                 with open(filepath, 'wb') as f:
-                    f.write(file_item.file.read())
+                    f.write(file_content)
 
                 print(f"[+] RECEIVED REMOTE TASK: {filename}. INITIATING CRACKING PIPELINE...")
                 sys.stdout.flush()
 
-                # Запускаем дешифрование на ПК через WPA 22000
-                win_target = subprocess.check_output(["wslpath", "-w", filepath]).decode().strip()
+                # Копируем файл на диск C:\ для корректной работы Windows Hashcat
+                win_work_dir = "/mnt/c/hashcat/work"
+                os.makedirs(win_work_dir, exist_ok=True)
+                win_file_dest = os.path.join(win_work_dir, filename)
+
+                with open(win_file_dest, 'wb') as f_out:
+                    f_out.write(file_content)
+
+                win_target = f"C:\\\\hashcat\\\\work\\\\{filename}"
 
                 # 1. Быстрая маска
                 cmd_mask = f"cd /mnt/c/hashcat && ./hashcat.exe -m 22000 -w 3 -a 3 {win_target} ?d?d?d?d?d?d?d?d -q"
@@ -72,20 +91,25 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
 
                 # Проверяем результат
                 cmd_show = f"cd /mnt/c/hashcat && ./hashcat.exe -m 22000 {win_target} --show"
-                show_res = subprocess.check_output(cmd_show, shell=True, stderr=subprocess.DEVNULL).decode().strip()
+                show_res = subprocess.check_output(cmd_show, shell=True, stderr=subprocess.DEVNULL).decode('utf-8', errors='ignore').strip()
 
                 if not show_res:
                     # 2. Если маска не помогла, прогоняем rockyou
-                    rockyou_win = subprocess.check_output(["wslpath", "-w", "/usr/share/wordlists/rockyou.txt"]).decode().strip()
+                    rockyou_win = "C:\\\\hashcat\\\\work\\\\rockyou.txt"
+                    # Копируем rockyou на C:\ при необходимости
+                    if not os.path.exists("/mnt/c/hashcat/work/rockyou.txt") and os.path.exists("/usr/share/wordlists/rockyou.txt"):
+                        subprocess.run("cp /usr/share/wordlists/rockyou.txt /mnt/c/hashcat/work/rockyou.txt", shell=True)
+
                     cmd_dict = f"cd /mnt/c/hashcat && ./hashcat.exe -m 22000 -w 3 -r rules/best66.rule {win_target} {rockyou_win} -q"
                     subprocess.run(cmd_dict, shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-                    show_res = subprocess.check_output(cmd_show, shell=True, stderr=subprocess.DEVNULL).decode().strip()
+                    show_res = subprocess.check_output(cmd_show, shell=True, stderr=subprocess.DEVNULL).decode('utf-8', errors='ignore').strip()
 
                 self.send_response(200)
                 self.end_headers()
 
                 if show_res:
-                    password = show_res.split(':')[-1].strip()
+                    # Извлекаем чистый пароль без символов каретки \r
+                    password = show_res.split(':')[-1].replace('\r', '').strip()
                     response_msg = f"SUCCESS:{password}"
                     print(f"[++] TASK COMPLETED! PASSWORD RECOVERED: {password}")
                 else:
@@ -93,9 +117,12 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                     print("[-] TASK COMPLETED. KEY NOT FOUND.")
 
                 sys.stdout.flush()
-                self.wfile.write(response_msg.encode())
-            else:
-                self.send_response(400)
+                self.wfile.write(response_msg.encode('utf-8'))
+
+            except Exception as e:
+                print(f"[!] EXCEPTION DURING UPLOAD/CRACK: {e}")
+                sys.stdout.flush()
+                self.send_response(500)
                 self.end_headers()
         else:
             self.send_response(404)

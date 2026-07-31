@@ -117,7 +117,7 @@ EOF_COL
 ai_speak() {
     local text="$1"
 
-    echo -ne "${TXT_SCARLET}${ITLC}"
+    echo -ne "${TXT_RED}${ITLC}"
 
     for (( i=0; i<${#text}; i++ )); do
         local char="${text:$i:1}"
