@@ -44,7 +44,7 @@ scan_ports() {
 
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// COGNITIVE RESIDUE DETECTED ]${TXT_VOID}────────────────────────────────────────╖${NC}"
     local sep_mid="${TXT_VOID}╟───────────────────────────────────────────────────────────────────────────────╢${NC}"
-    local sep_bot="${TXT_VOID}╙───────────────────────────────────────────────────────────────────────────────╜${NC}"
+    local sep_bot="${TXT_VOID}╙───────────────────────────────────────────────────────────────────────────────✆${NC}"
 
     STATE[shadow_web_80_started]="false"
     STATE[shadow_web_443_started]="false"
@@ -158,6 +158,25 @@ scan_ports() {
 
         echo -ne "\r\033[K"
 
+        # Проверка на Tarpit / Port Spoofing
+        if [ ${#local_ports[@]} -gt 20 ]; then
+            ai_speak "Warning: Firewall SYN-Proxy or Port Spoofing detected on target."
+            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ ! ] FIREWALL TARPIT DETECTED: ${#local_ports[@]} open ports reported.${NC}"
+            echo -e "${TXT_VOID}│   ${TXT_RED_MAGMA}Executing full 3-way handshake verification scan...${NC}"
+
+            local ports_csv=$(IFS=, ; echo "${local_ports[*]}")
+            local real_ports=()
+
+            while IFS= read -r scan_line; do
+                if [[ "$scan_line" =~ ^[[:space:]]*([0-9]+)/tcp[[:space:]]+open ]]; then
+                    real_ports+=("${BASH_REMATCH[1]}")
+                fi
+            done < <(nmap -p"$ports_csv" -sT -Pn --max-retries 1 "$ip" 2>/dev/null)
+
+            local_ports=("${real_ports[@]}")
+            echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] VERIFICATION COMPLETE: Filtered down to ${#local_ports[@]} true open ports.${NC}"
+        fi
+
         if [ ${#local_ports[@]} -gt 0 ]; then
             local ports_string=$(IFS=, ; echo "${local_ports[*]}")
             STATE[open_ports]="$ports_string"
@@ -264,7 +283,7 @@ scan_ports() {
                                     echo -e "\r\033[K${TXT_VOID}│${NC}  ${TXT_B_PLASMA}☠ [REAP:${port}]${NC} ${sev_col}[${severity}]${NC} ${TXT_RED_LASER}ALGORITHM FAULT IN${NC} ${TXT_RED_SUPERNOVA}${template}${NC}"
                                 fi
 
-                                local version_query=
+                                local version_query=""
                                 if [[ "$clean_extra" =~ ([0-9]+\.[0-9]+) ]]; then
                                     version_query="${BASH_REMATCH[1]}"
                                 fi
