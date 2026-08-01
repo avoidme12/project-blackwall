@@ -99,7 +99,6 @@ _run_hashcat_with_speedometer() {
         fi
 
         echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spinner[spin_idx]}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${current_speed}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed}s${NC}\033[K" >&2
-
         echo "STAT|${pass_label}|${current_speed}|${elapsed}s|${spinner[spin_idx]}"
 
         sleep 0.1
@@ -111,7 +110,22 @@ _run_hashcat_with_speedometer() {
         fi
     done
 
+    wait "$hc_pid" 2>/dev/null
+    local exit_code=$?
+
     echo -ne "\r\033[K" >&2
+
+    if [ $exit_code -ne 0 ] && [ $elapsed -lt 3 ]; then
+        echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ ! ] EXCEPTION: Hashcat core aborted prematurely (Code $exit_code).${NC}" >&2
+        if [ -f "$log_file" ]; then
+            local err_msg
+            err_msg=$(grep -Ei 'clBuildProgram|cuModuleLoad|Error|Token|Unrecognized' "$log_file" | head -n 2 | tr -d '\r')
+            if [ -n "$err_msg" ]; then
+                echo -e "${TXT_VOID}║   ${TXT_DRK_RED}Diagnostic:${NC} ${TXT_RED_SUPERNOVA}${err_msg}${NC}" >&2
+            fi
+        fi
+    fi
+
     rm -f "$log_file" 2>/dev/null
 }
 
@@ -164,8 +178,7 @@ run_wifi_crack_pipeline() {
 
     _coolant_dispense_speak
 
-    _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" '?d?d?d?d?d?d?d?d'
-    cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
+    _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "?d?d?d?d?d?d?d?d"    cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
     if [ -n "$cracked_wifi" ]; then
         local clear_pass
