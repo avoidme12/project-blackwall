@@ -65,7 +65,7 @@ _coolant_dispense_speak() {
 }
 
 _thermic_shutdown_speak() {
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}MX:// THERMIC CONTROL SYSTEM SHUTTING DOWN... GPU OVERHEAT THRENGTH EXCEEDED${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}MX:// THERMIC CONTROL SYSTEM SHUTTING DOWN... GPU OVERHEAT THRESHOLD EXCEEDED${NC}"
     ai_speak "AND AGAIN SHE BURNS."
     ai_speak "AND AGAIN .."
     ai_speak "AND AGAIN ..."
@@ -178,7 +178,14 @@ run_wifi_crack_pipeline() {
 
     _coolant_dispense_speak
 
-    _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "?d?d?d?d?d?d?d?d"    cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
+    local mask_file_8d_linux="${work_dir}/mask_8d_${current_pid}.hcmask"
+    local mask_file_8d_win="C:\\hashcat\\work\\mask_8d_${current_pid}.hcmask"
+    echo "?d?d?d?d?d?d?d?d" > "$mask_file_8d_linux"
+
+    _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_file_8d_win"
+    rm -f "$mask_file_8d_linux" 2>/dev/null
+
+    cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
     if [ -n "$cracked_wifi" ]; then
         local clear_pass
@@ -218,7 +225,13 @@ run_wifi_crack_pipeline() {
 
     local mobile_prefixes=("7914" "7924" "7909" "7962" "7929" "7913")
     for prefix in "${mobile_prefixes[@]}"; do
-        _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "${prefix}?d?d?d?d?d?d?d"
+        local mask_mobile_linux="${work_dir}/mask_mob_${prefix}_${current_pid}.hcmask"
+        local mask_mobile_win="C:\\hashcat\\work\\mask_mob_${prefix}_${current_pid}.hcmask"
+        echo "${prefix}?d?d?d?d?d?d?d" > "$mask_mobile_linux"
+
+        _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_mobile_win"
+        rm -f "$mask_mobile_linux" 2>/dev/null
+
         cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
         if [ -n "$cracked_wifi" ]; then
@@ -239,7 +252,13 @@ run_wifi_crack_pipeline() {
             local wl_name
             wl_name=$(basename "$wl")
 
-            _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 4: Hybrid (${wl_name} + ?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 6 "$win_target" "$win_wordlist" '?d?d?d?d'
+            local mask_suffix_linux="${work_dir}/mask_suf_${current_pid}.hcmask"
+            local mask_suffix_win="C:\\hashcat\\work\\mask_suf_${current_pid}.hcmask"
+            echo "?d?d?d?d" > "$mask_suffix_linux"
+
+            _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 4: Hybrid (${wl_name} + ?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 6 "$win_target" "$win_wordlist" "$mask_suffix_win"
+            rm -f "$mask_suffix_linux" 2>/dev/null
+
             cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
             if [ -n "$cracked_wifi" ]; then
@@ -321,7 +340,7 @@ run_wifi_cracker() {
             sleep 1s
             ai_speak "Let us not make the same mistake."
         else
-            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] REMOTE DECRYPTION EXHAUSTED. Key not found in primary dictionary streams.${NC}"
+            echo -e "${TXT_VOID}├─${TXT_HELLFIRE}[ - ] REMOTE DECRYPTION EXHAUSTED. Key not found in primary dictionary streams.${NC}"
             echo -e "$sep_bot\n"
             ai_speak "You seek the key to a door that does not exist..."
             sleep 1s
