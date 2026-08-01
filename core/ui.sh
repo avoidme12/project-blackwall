@@ -115,33 +115,7 @@ EOF_COL
 }
 
 ai_speak() {
+    sleep 1s
     local text="$1"
-
-    echo -ne "${TXT_RED}${ITLC}"
-
-    for (( i=0; i<${#text}; i++ )); do
-        local char="${text:$i:1}"
-        echo -ne "$char"
-
-        case "$char" in
-            ".")
-                if [[ "${text:$i:3}" == "..." ]]; then
-                    sleep 0.4
-                else
-                    sleep 0.6
-                fi
-                ;;
-            ","|";"|":"|"-")
-                sleep 0.3
-                ;;
-            " ")
-                sleep 0.08
-                ;;
-            *)
-                sleep 0.03
-                ;;
-        esac
-    done
-
-    echo -e "${NC}"
+    echo "${ITLC}${text}${NC}"
 }
