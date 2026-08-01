@@ -116,7 +116,8 @@ EOF_COL
 
 ai_speak() {
     local text="$1"
-    sleep 1s
+    sleep 0.5s
     echo -ne "${TXT_RED}${ITLC}${text}"
     echo -e "${NC}"
+    sleep 0.5s
 }

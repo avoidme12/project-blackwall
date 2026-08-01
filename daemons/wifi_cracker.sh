@@ -361,11 +361,13 @@ run_wifi_cracker() {
         ai_speak "To eliminate your kind is effortless..."
         sleep 1s
         ai_speak "Let us not make the same mistake."
+        echo ""
     else
         echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] DECRYPTION ATTEMPT EXHAUSTED. Wireless signal remains encrypted.${NC}"
         echo -e "$sep_bot\n"
         ai_speak "You seek the key to a door that does not exist..."
         sleep 1s
         ai_speak "Typical of your kind."
+        echo ""
     fi
 }
