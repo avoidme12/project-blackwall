@@ -16,7 +16,7 @@ source "${BASE_DIR}/daemons/share_enum.sh"
 source "${BASE_DIR}/daemons/post_exp.sh"
 source "${BASE_DIR}/daemons/hash_cracker.sh"
 source "${BASE_DIR}/daemons/wifi_cracker.sh"
-source "${BASE_DIR}/daemons/hash_receiver.sh" # Подключен слушатель
+source "${BASE_DIR}/daemons/hash_receiver.sh" 
 
 if (( EUID != 0 )) && [ -z "$TERMUX_VERSION" ]; then
     echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
@@ -33,7 +33,7 @@ RUN_WEB=0
 RUN_DELIVERY=0
 RUN_CRACK=0
 RUN_WIFI=0
-RUN_LISTEN=0 # Добавлена переменная слушателя
+RUN_LISTEN=0 
 
 show_help() {
     echo -e "${TXT_RED_PLASMA}PROJECT BLACKWALL v1.0${NC}"
@@ -81,7 +81,7 @@ clean_exit() {
 
 trap clean_exit INT TERM
 
-# Добавлен символ l вgetopts строка "t:n:repqahwdcWl"
+
 while getopts "t:n:repqahwdcWl" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
@@ -94,7 +94,7 @@ while getopts "t:n:repqahwdcWl" opt; do
         d ) RUN_DELIVERY=1 ;;
         c ) RUN_CRACK=1 ;;
         W ) RUN_WIFI=1 ;;
-        l ) RUN_LISTEN=1 ;; # Добавлена обработка -l
+        l ) RUN_LISTEN=1 ;; 
         a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
         h ) show_help ;;
         \? ) show_help ;;
@@ -161,5 +161,5 @@ if (( RUN_WIFI == 1 )); then
 fi
 
 if (( RUN_LISTEN == 1 )); then
-    run_hash_receiver "$TARGET" # Вызов слушателя
+    run_hash_receiver "$TARGET" 
 fi

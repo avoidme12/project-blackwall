@@ -1,7 +1,4 @@
 #!/bin/bash
-# ==========================================
-# DAEMON: SHADOW SIGNAL RECEIVER & REMOTE CRACKER (Cynosure Server)
-# ==========================================
 
 run_hash_receiver() {
     local lport="9999"
@@ -51,7 +48,7 @@ TXT_SCARLET = "\033[38;2;255;80;80m"
 TXT_B_ALARM = "\033[1;38;2;255;65;0m"
 NC = "\033[0m\033[38;2;130;20;30m"
 
-# Разрешаем повторное мгновенное использование порта 9999 при перезапусках
+
 class ReusableTCPServer(socketserver.TCPServer):
     allow_reuse_address = True
 
@@ -93,7 +90,7 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
                 sys.stdout.flush()
 
                 bash_cmd = f"stdbuf -oL -eL bash -c 'source \"{BASE_DIR}/core/colors.sh\" && source \"{BASE_DIR}/core/ui.sh\" && source \"{BASE_DIR}/core/state.sh\" && source \"{BASE_DIR}/daemons/wifi_cracker.sh\" && run_wifi_crack_pipeline \"{filepath}\"'"
-                # Исправление warning Python 3.14+: текстовый режим с буферизацией строк (text=True, bufsize=1)
+                
                 pipe = subprocess.Popen(bash_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
 
                 self.send_response(200)
@@ -102,20 +99,20 @@ class UploadAndCrackHandler(http.server.SimpleHTTPRequestHandler):
 
                 recovered_password = None
 
-                # Стримим телеметрию клиенту и одновременно ищем результат дешифрования
+                
                 for line in iter(pipe.stdout.readline, ''):
                     line_clean = line.strip()
                     if "SUCCESS:" in line_clean:
                         recovered_password = line_clean.split("SUCCESS:")[-1].strip()
 
-                    # Пересылаем строчку клиенту (ноутбуку/телефону)
+                    
                     self.wfile.write(line.encode('utf-8'))
                     self.wfile.flush()
 
                 pipe.stdout.close()
                 pipe.wait()
 
-                # Вывод найденного пароля в консоль сервера ПК
+                
                 if recovered_password:
                     response_msg = f"SUCCESS:{recovered_password}\n"
                     print(f"{TXT_VOID}├─{TXT_SCARLET}[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:{NC}")

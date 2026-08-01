@@ -1,7 +1,4 @@
 #!/bin/bash
-# ==========================================
-# DAEMON: WIRELESS SIGNAL DECRYPTOR (Full 6-Stage Pipeline)
-# ==========================================
 
 ensure_wordlists() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Verifying dictionary availability...${NC}"
@@ -81,10 +78,10 @@ _run_hashcat_with_speedometer() {
             fi
         fi
 
-        # 1. Отрисовка на экране локального сервера (в stderr)
+        
         echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spinner[spin_idx]}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${current_speed}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed}s${NC}\033[K" >&2
 
-        # 2. Вывод структурированной строки телеметрии в stdout (для сетевой трансляции)
+        
         echo "STAT|${pass_label}|${current_speed}|${elapsed}s|${spinner[spin_idx]}"
 
         sleep 0.1
@@ -101,7 +98,7 @@ _run_hashcat_with_speedometer() {
 }
 
 
-# Единый асинхронный/локальный конвейер выполнения всех 6 этапов
+
 run_wifi_crack_pipeline() {
     local cap_file=$1
     local current_pid=$$
@@ -138,7 +135,7 @@ run_wifi_crack_pipeline() {
 
     local base_hw_opt=("-w" "3" "--status" "--status-timer=1")
 
-    # 1. Проверка potfile кэша
+    
     local cracked_wifi
     cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
@@ -150,7 +147,7 @@ run_wifi_crack_pipeline() {
         return 0
     fi
 
-    # 2. PASS 1: Цифровая маска (?d?d?d?d?d?d?d?d)
+    
     _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" '?d?d?d?d?d?d?d?d'
     cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
 
@@ -162,7 +159,7 @@ run_wifi_crack_pipeline() {
         return 0
     fi
 
-    # 3. PASS 2: Перебор по словарям с мутациями best66.rule
+    
     ensure_wordlists
     local wordlists=(
         "/usr/share/wordlists/rockyou.txt"
@@ -191,7 +188,7 @@ run_wifi_crack_pipeline() {
         fi
     done
 
-    # 4. PASS 3: Региональная мобильная атака
+    
     local mobile_prefixes=("7914" "7924" "7909" "7962" "7929" "7913")
     for prefix in "${mobile_prefixes[@]}"; do
         _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "${prefix}?d?d?d?d?d?d?d"
@@ -206,7 +203,7 @@ run_wifi_crack_pipeline() {
         fi
     done
 
-    # 5. PASS 4: Гибридная атака (Слово + 4 цифры)
+    
     for wl in "${wordlists[@]}"; do
         if [ -f "$wl" ] && [ -s "$wl" ]; then
             local win_wordlist
@@ -240,7 +237,7 @@ run_wifi_cracker() {
     echo -e "\n$sep"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
 
-    # STAGE 1: Дамп
+    
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 1/6 ] Ingest Target Capture Image (.cap, .pcapng, .hc22000):${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
     read -r cap_file
@@ -251,7 +248,7 @@ run_wifi_cracker() {
         return 1
     fi
 
-    # STAGE 2: Выбор режима вычислений
+    
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] Select Compute Processing Node:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Local Compute (Local Hashcat Pipeline)${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[2] Remote Cynosure Core Node (Desktop via Tailscale)${NC}"
@@ -275,22 +272,22 @@ run_wifi_cracker() {
         local remote_pass=""
         local is_success=false
 
-        # curl -N (без буферизации) считывает и отрисовывает телеметрию в реальном времени!
+        
         while IFS= read -r line; do
             line=$(echo "$line" | tr -d '\r')
             if [[ "$line" == STAT\|* ]]; then
                 local tag pass_label hashrate elapsed_time spin_char
                 IFS='|' read -r tag pass_label hashrate elapsed_time spin_char <<< "$line"
 
-                # Отрисовка интерактивного спидометра на экране ноутбука/телефона
+                
                 echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spin_char}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${hashrate}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed_time}${NC}\033[K"
             elif [[ "$line" == SUCCESS:* ]]; then
-                remote_pass="${line#SUCCESS:}"
+                remote_pass="${line
                 is_success=true
             fi
         done < <(curl -N -s -F "file=@${cap_file}" "http://${desktop_ip}:9999/upload_and_crack")
 
-        echo -ne "\r\033[K" # Стираем строчку спидометра
+        echo -ne "\r\033[K" 
 
         if [ "$is_success" = true ]; then
             echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:${NC}"
@@ -309,13 +306,13 @@ run_wifi_cracker() {
         return 0
     fi
 
-    # Локальное выполнение
+    
     echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching 6-Stage Hardware Decryption Pipeline...${NC}"
     local result
     result=$(run_wifi_crack_pipeline "$cap_file")
 
     if [[ "$result" == SUCCESS:* ]]; then
-        local clear_pass="${result#SUCCESS:}"
+        local clear_pass="${result
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
         echo -e "$sep_bot\n"
