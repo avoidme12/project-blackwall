@@ -16,7 +16,8 @@ source "${BASE_DIR}/daemons/share_enum.sh"
 source "${BASE_DIR}/daemons/post_exp.sh"
 source "${BASE_DIR}/daemons/hash_cracker.sh"
 source "${BASE_DIR}/daemons/wifi_cracker.sh"
-source "${BASE_DIR}/daemons/hash_receiver.sh" 
+source "${BASE_DIR}/daemons/hash_receiver.sh"
+source "${BASE_DIR}/daemons/wifi_recon.sh"
 
 if (( EUID != 0 )) && [ -z "$TERMUX_VERSION" ]; then
     echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
@@ -48,6 +49,7 @@ show_help() {
     echo -e "  -c         Cryptographic decryption (Hash Cracker via Hashcat)"
     echo -e "  -W         Wireless Signal Decryptor (WPA/WPA2/WPA3 6-Stage Pipeline)"
     echo -e "  -l         Shadow Listener Mode (Receive hashes over network & auto-crack)"
+    echo -e "  -S         Wireless Spectrum Recon (Scan airwaves, fix adapter & capture Handshake)"
     echo -e "  -q         Skip art"
     echo -e "  -a         Run all modules"
     echo -e "  -h         Help"
@@ -82,7 +84,7 @@ clean_exit() {
 trap clean_exit INT TERM
 
 
-while getopts "t:n:repqahwdcWl" opt; do
+while getopts "t:n:repqahwdcWSl" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
@@ -96,6 +98,7 @@ while getopts "t:n:repqahwdcWl" opt; do
         W ) RUN_WIFI=1 ;;
         l ) RUN_LISTEN=1 ;; 
         a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
+        S ) RUN_WIFI_SCAN=1 ;;
         h ) show_help ;;
         \? ) show_help ;;
     esac
@@ -127,6 +130,10 @@ if (( RUN_RECON == 1 )); then
     check_target_alive "$TARGET"
     echo ""
     scan_ports "$TARGET"
+fi
+
+if (( RUN_WIFI_SCAN == 1 )); then
+    run_wifi_recon
 fi
 
 if (( RUN_WEB == 1 )); then
