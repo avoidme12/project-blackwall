@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" width="100%" height="220">
+    <rect width="100%" height="100%" fill="#0d0d0d" rx="5" />
+    <style>
+        .base { font-family: monospace; font-size: 13px; font-weight: normal; }
+        .dark-pipe { fill: rgb(60,10,15); }
+        .header-border { fill: rgb(255,65,0); font-weight: bold; }
+        .header-title { fill: rgb(255,0,0); font-weight: bold; }
+        .stage-title { fill: rgb(255,65,0); }
+        .value-bright { fill: rgb(255,180,180); }
+        .value-neon { fill: rgb(255,80,80); }
+        .bar-bg { fill: rgb(60,10,15); }
+        .bar-fill { fill: rgb(255,0,0); font-weight: bold; }
+        .lbl-hash { fill: rgb(255,65,0); }
+        .val-hash { fill: rgb(255,0,0); font-weight: bold; }
+        .lbl-time { fill: rgb(255,40,40); }
+        .val-time { fill: rgb(255,180,180); }
+        .ai-quote { fill: rgb(240,50,50); font-style: italic; }
+    </style>
+    <text x="15" y="30" class="base">
+        <tspan class="header-border">╓───[ </tspan><tspan class="header-title">MX:// WIRELESS SIGNAL DECRYPTOR MATRIX ACTIVE</tspan><tspan class="header-border"> ]───────────────────╖</tspan>
+    </text>
+    <text x="15" y="52" class="base"><tspan class="dark-pipe">║   </tspan><tspan class="header-title">MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...</tspan></text>
+    <text x="15" y="74" class="base"><tspan class="dark-pipe">╟─</tspan><tspan class="stage-title">[ STAGE 4/6 ] Hardware Acceleration &amp; Attack Pipeline Initialization:</tspan></text>
+    <text x="15" y="96" class="base"><tspan class="dark-pipe">║   </tspan><tspan class="value-bright">Detected Rig: NVIDIA RTX 5060 Ti (16GB) Detected</tspan></text>
+    <text x="15" y="118" class="base"><tspan class="dark-pipe">║   </tspan><tspan class="value-bright">Engine: NVIDIA CUDA Pipeline Engaged</tspan></text>
+    <text x="15" y="132" class="base dark-pipe">│</text>
+    <text x="15" y="150" class="base">
+        <tspan class="dark-pipe">├─ [ ~ ] </tspan><tspan class="value-bright">PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d) </tspan><tspan class="bar-bg">[</tspan><tspan class="bar-fill">▰▰▰▰▱▱▱▱▱▱</tspan><tspan class="bar-bg">] </tspan><tspan class="lbl-hash">HASHRATE: </tspan><tspan class="val-hash">810.5 kH/s </tspan><tspan class="dark-pipe">| </tspan><tspan class="lbl-time">TIME: </tspan><tspan class="val-time">19s</tspan>
+    </text>
+    <text x="15" y="172" class="base"><tspan class="dark-pipe">├─</tspan><tspan class="value-neon">[ STAGE 6/6 ] REMOTE NODE SUCCESS: RECOVERED WIRELESS KEY:</tspan></text>
+    <text x="15" y="194" class="base"><tspan class="dark-pipe">║   </tspan><tspan class="value-bright">PASSWORD -&gt; [ 85603123 ]</tspan></text>
+    <text x="15" y="212" class="base header-border">╙──────────────────────────────────────────────────────────────────────────────✆</text>
+</svg>

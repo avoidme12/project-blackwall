@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" width="100%" height="380">
+    <rect width="100%" height="100%" fill="#0d0d0d" rx="5" />
+    <style>
+        .base { font-family: monospace; font-size: 13px; font-weight: normal; }
+        .root { fill: rgb(255,0,0); font-weight: bold; }
+        .file-main { fill: rgb(255,80,80); }
+        .dir { fill: rgb(255,65,0); font-weight: bold; }
+        .file-core { fill: rgb(210,40,40); }
+        .file-daemon { fill: rgb(255,90,90); }
+        .tree-pipe { fill: rgb(60,10,15); }
+        .comment { fill: rgb(150,30,40); }
+    </style>
+    <text x="15" y="25" class="base root">project-blackwall/</text>
+    <text x="15" y="47" class="base"><tspan class="tree-pipe">├── </tspan><tspan class="file-main">blackwall.sh</tspan><tspan class="comment">                 # Главный оркестратор системы</tspan></text>
+    <text x="15" y="69" class="base"><tspan class="tree-pipe">├── </tspan><tspan class="dir">core/</tspan><tspan class="comment">                        # Ядро интерфейса и сети</tspan></text>
+    <text x="15" y="91" class="base"><tspan class="tree-pipe">│   ├── </tspan><tspan class="file-core">colors.sh</tspan><tspan class="comment">                # Багровая палитра HEX/ANSI</tspan></text>
+    <text x="15" y="113" class="base"><tspan class="tree-pipe">│   ├── </tspan><tspan class="file-core">dns.sh</tspan><tspan class="comment">                   # Авто-синхронизация /etc/hosts</tspan></text>
+    <text x="15" y="135" class="base"><tspan class="tree-pipe">│   ├── </tspan><tspan class="file-core">network.sh</tspan><tspan class="comment">               # Автоопределение HTB / Tailscale / LAN</tspan></text>
+    <text x="15" y="157" class="base"><tspan class="tree-pipe">│   ├── </tspan><tspan class="file-core">state.sh</tspan><tspan class="comment">                 # Глобальная матрица состояния</tspan></text>
+    <text x="15" y="179" class="base"><tspan class="tree-pipe">│   ├── </tspan><tspan class="file-core">ui.sh</tspan><tspan class="comment">                    # Глитч-эффекты и рендеринг ASCII-арта</tspan></text>
+    <text x="15" y="201" class="base"><tspan class="tree-pipe">│   └── </tspan><tspan class="file-core">nmap_logs/</tspan><tspan class="comment">               # Автоматический кэш отчетов Nmap</tspan></text>
+    <text x="15" y="223" class="base"><tspan class="tree-pipe">└── </tspan><tspan class="dir">daemons/</tspan><tspan class="comment">                     # Изолированные модули атаки</tspan></text>
+    <text x="15" y="245" class="base"><tspan class="tree-pipe">    ├── </tspan><tspan class="file-daemon">ctf_boil.sh</tspan><tspan class="comment">              # Генератор шаблонов эксплоитов (pwn/web)</tspan></text>
+    <text x="15" y="267" class="base"><tspan class="tree-pipe">    ├── </tspan><tspan class="file-daemon">fast_audit.sh</tspan><tspan class="comment">            # Однострочник экспресс-аудита системы</tspan></text>
+    <text x="15" y="289" class="base"><tspan class="tree-pipe">    ├── </tspan><tspan class="file-daemon">hash_cracker.sh</tspan><tspan class="comment">          # Модуль дешифрования хэшей</tspan></text>
+    <text x="15" y="311" class="base"><tspan class="tree-pipe">    ├── </tspan><tspan class="file-daemon">hash_receiver.sh</tspan><tspan class="comment">         # Удаленный приемник дамп-файлов</tspan></text>
+    <text x="15" y="333" class="base"><tspan class="tree-pipe">    ├── </tspan><tspan class="file-daemon">leak_extractor.sh</tspan><tspan class="comment">        # Анализатор утечек конфигураций</tspan></text>
+    <text x="15" y="355" class="base"><tspan class="tree-pipe">    └── ...</tspan><tspan class="comment">                     # Прочие боевые демоны</tspan></text>
+</svg>
