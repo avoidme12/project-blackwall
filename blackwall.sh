@@ -18,6 +18,8 @@ source "${BASE_DIR}/daemons/hash_cracker.sh"
 source "${BASE_DIR}/daemons/wifi_cracker.sh"
 source "${BASE_DIR}/daemons/hash_receiver.sh"
 source "${BASE_DIR}/daemons/wifi_recon.sh"
+source "${BASE_DIR}/daemons/ctf_boil.sh"
+source "${BASE_DIR}/daemons/fast_audit.sh"
 
 if (( EUID != 0 )) && [ -z "$TERMUX_VERSION" ]; then
     echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
@@ -34,7 +36,10 @@ RUN_WEB=0
 RUN_DELIVERY=0
 RUN_CRACK=0
 RUN_WIFI=0
-RUN_LISTEN=0 
+RUN_LISTEN=0
+RUN_WIFI_SCAN=0
+RUN_BOIL=0
+RUN_AUDIT=0
 
 show_help() {
     echo -e "${TXT_RED_PLASMA}PROJECT BLACKWALL v1.0${NC}"
@@ -84,7 +89,7 @@ clean_exit() {
 trap clean_exit INT TERM
 
 
-while getopts "t:n:repqahwdcWSl" opt; do
+while getopts "t:n:repqahwdcWSlbB" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
@@ -99,6 +104,8 @@ while getopts "t:n:repqahwdcWSl" opt; do
         l ) RUN_LISTEN=1 ;; 
         a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
         S ) RUN_WIFI_SCAN=1 ;;
+        b ) RUN_BOIL=1 ;;
+        B ) RUN_AUDIT=1 ;;
         h ) show_help ;;
         \? ) show_help ;;
     esac
@@ -148,6 +155,14 @@ fi
 
 if (( RUN_BRUTE == 1 )); then
     run_leak_extractor "$TARGET"
+fi
+
+if (( RUN_BOIL == 1 )); then
+    run_ctf_boilerplate
+fi
+
+if (( RUN_AUDIT == 1 )); then
+    run_fast_audit
 fi
 
 if (( RUN_PAYLOADS == 1 )); then
