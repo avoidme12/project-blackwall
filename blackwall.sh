@@ -55,6 +55,8 @@ show_help() {
     echo -e "  -W         Wireless Signal Decryptor (WPA/WPA2/WPA3 6-Stage Pipeline)"
     echo -e "  -l         Shadow Listener Mode (Receive hashes over network & auto-crack)"
     echo -e "  -S         Wireless Spectrum Recon (Scan airwaves, fix adapter & capture Handshake)"
+    echo -e "  -b         CTF Boilerplate Generator (Pwn / Web templates)"
+    echo -e "  -B         Rapid Fast Audit One-Liner"
     echo -e "  -q         Skip art"
     echo -e "  -a         Run all modules"
     echo -e "  -h         Help"
@@ -88,7 +90,6 @@ clean_exit() {
 
 trap clean_exit INT TERM
 
-
 while getopts "t:n:repqahwdcWSlbB" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
@@ -101,17 +102,17 @@ while getopts "t:n:repqahwdcWSlbB" opt; do
         d ) RUN_DELIVERY=1 ;;
         c ) RUN_CRACK=1 ;;
         W ) RUN_WIFI=1 ;;
-        l ) RUN_LISTEN=1 ;; 
-        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
+        l ) RUN_LISTEN=1 ;;
         S ) RUN_WIFI_SCAN=1 ;;
         b ) RUN_BOIL=1 ;;
         B ) RUN_AUDIT=1 ;;
+        a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
         h ) show_help ;;
         \? ) show_help ;;
     esac
 done
 
-if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )) && (( RUN_LISTEN == 0 )); then
+if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )) && (( RUN_LISTEN == 0 )) && (( RUN_WIFI_SCAN == 0 )) && (( RUN_BOIL == 0 )) && (( RUN_AUDIT == 0 )); then
     echo -e "${TXT_VOID}[!] ERROR: TARGET IS NULL${NC}"
     show_help
 fi
