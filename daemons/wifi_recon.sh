@@ -86,8 +86,29 @@ run_wifi_recon() {
         return 1
     fi
 
+    # Парсинг количества подключенных клиентов (Stations) по BSSID
+    declare -A sta_counts
+    local parsing_stations=0
+
+    while IFS=, read -r col1 col2 col3 col4 col5 col6 col7; do
+        col1=$(echo "$col1" | xargs)
+        col6=$(echo "$col6" | xargs)
+
+        if [[ "$col1" == "Station MAC" ]]; then
+            parsing_stations=1
+            continue
+        fi
+
+        if [ $parsing_stations -eq 1 ]; then
+            if [[ "$col1" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] && [[ "$col6" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
+                local ap_bssid="$col6"
+                sta_counts["$ap_bssid"]=$(( ${sta_counts["$ap_bssid"]:-0} + 1 ))
+            fi
+        fi
+    done < "$csv_file"
+
     echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// ISOLATED WIRELESS TARGET MATRIX ]${TXT_VOID}───────────────────────────────────╢${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}NUM  BSSID              CH   PWR   ENC      ESSID${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}NUM  BSSID              CH   PWR   STAs  ENC      ESSID${NC}"
     echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
 
     local bssids=()
@@ -109,13 +130,21 @@ run_wifi_recon() {
             channels+=("$channel")
             essids+=("$essid")
 
+            local active_stas=${sta_counts["$bssid"]:-0}
+            local formatted_stas
+            if [ "$active_stas" -gt 0 ]; then
+                formatted_stas=$(printf "${TXT_B_PLASMA}%02d${NC}  " "$active_stas")
+            else
+                formatted_stas=$(printf "${TXT_VOID}%02d${NC}  " 0)
+            fi
+
             local formatted_num=$(printf "%02d" $idx)
             local formatted_bssid=$(printf "%-17s" "$bssid")
             local formatted_ch=$(printf "%-4s" "$channel")
             local formatted_pwr=$(printf "%-5s" "${power}dBm")
             local formatted_enc=$(printf "%-8s" "$privacy")
 
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[${formatted_num}]${NC} ${TXT_RED_SUPERNOVA}${formatted_bssid}${NC} ${TXT_B_ALARM}${formatted_ch}${NC} ${TXT_RED_MAGMA}${formatted_pwr}${NC} ${TXT_RED_LASER}${formatted_enc}${NC} ${TXT_CORE}${essid}${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[${formatted_num}]${NC} ${TXT_RED_SUPERNOVA}${formatted_bssid}${NC} ${TXT_B_ALARM}${formatted_ch}${NC} ${TXT_RED_MAGMA}${formatted_pwr}${NC} ${formatted_stas}${TXT_RED_LASER}${formatted_enc}${NC} ${TXT_CORE}${essid}${NC}"
             ((idx++))
         fi
     done < "$csv_file"
@@ -146,17 +175,17 @@ run_wifi_recon() {
     local sel_bssid="${bssids[$target_idx]}"
     local sel_ch="${channels[$target_idx]}"
     local sel_essid="${essids[$target_idx]}"
+    local sel_stas=${sta_counts["$sel_bssid"]:-0}
     local capture_out="/tmp/handshake_${sel_bssid//:/}"
 
     echo -e "${TXT_VOID}│${NC}"
     echo -e "${TXT_VOID}╟─${TXT_RED_PLASMA}[ * ] LOCKING SYNAPTIC DRILL ON TARGET:${NC} ${TXT_RED_SUPERNOVA}${sel_essid}${NC} (${TXT_B_ALARM}${sel_bssid}${NC})"
-    echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Capturing PMKID / WPA Handshake (90s Extended Window)...${NC}"
+    echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Active Clients Detected: ${sel_stas} | Capturing PMKID / WPA Handshake (90s)...${NC}"
 
     iwconfig "$iface" channel "$sel_ch" >/dev/null 2>&1
     airodump-ng --bssid "$sel_bssid" --channel "$sel_ch" --write "$capture_out" "$iface" >/dev/null 2>&1 &
     local cap_pid=$!
 
-    # Увеличенный 90-секундный захват пакетов
     for ((i=90; i>0; i--)); do
         echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] DRAIN IN PROGRESS${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}HANDSHAKE_PULL${TXT_VOID}]${NC} ${TXT_RED_ALARM}REMAINING:${NC} ${TXT_RED_SUPERNOVA}${i}s${NC}\033[K"
         sleep 1
@@ -169,7 +198,6 @@ run_wifi_recon() {
     local final_cap="${capture_out}-01.cap"
     local verify_hash="/tmp/check_valid_${current_pid}.hc22000"
 
-    # Проверка валидности через hcxpcapngtool
     if command -v hcxpcapngtool >/dev/null 2>&1 && [ -f "$final_cap" ]; then
         hcxpcapngtool -o "$verify_hash" "$final_cap" >/dev/null 2>&1
     fi
