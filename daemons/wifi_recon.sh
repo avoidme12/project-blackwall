@@ -2,7 +2,7 @@
 
 _fix_wifi_adapter() {
     local iface=$1
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Neutralizing OS power-management & network processes...${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Neutralizing OS power-management & network processes...${NC}" >&2
 
     airmon-ng check kill >/dev/null 2>&1
     iw dev "$iface" set power_save off >/dev/null 2>&1
