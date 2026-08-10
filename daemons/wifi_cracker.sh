@@ -39,11 +39,11 @@ ensure_wordlists() {
 }
 
 _get_hashcat_runner() {
-    if command -v hashcat >/dev/null 2>&1; then
-        echo "NATIVE_LINUX"
-        return 0
-    elif [ -f "/mnt/c/hashcat/hashcat.exe" ]; then
+    if [ -f "/mnt/c/hashcat/hashcat.exe" ]; then
         echo "WSL_WINDOWS"
+        return 0
+    elif command -v hashcat >/dev/null 2>&1; then
+        echo "NATIVE_LINUX"
         return 0
     fi
     echo "NONE"
@@ -213,8 +213,8 @@ run_wifi_crack_pipeline() {
         hc_mode=2500
     fi
 
-    # Флаг -D 2 форсирует запуск СТРОГО на GPU
-    local base_hw_opt=("-w" "3" "-D" "2" "--status" "--status-timer=1")
+    # Использование -d 1 жестко привязывает Hashcat к GPU #1 (RTX 5060 Ti)
+    local base_hw_opt=("-w" "3" "-d" "1" "--status" "--status-timer=1")
 
     local cracked_wifi
     cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
