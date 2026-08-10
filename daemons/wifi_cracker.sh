@@ -158,9 +158,9 @@ _check_show_hashcat() {
     local target_file="$3"
 
     if [ "$runner" == "NATIVE_LINUX" ]; then
-        hashcat -m "$hc_mode" "$target_file" --show 2>/dev/null | tr -d '\r'
+        hashcat -m "$hc_mode" -D 2 "$target_file" --show 2>/dev/null | tr -d '\r'
     else
-        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$target_file" --show 2>/dev/null | tr -d '\r')
+        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" -D 2 "$target_file" --show 2>/dev/null | tr -d '\r')
     fi
 }
 
@@ -213,7 +213,8 @@ run_wifi_crack_pipeline() {
         hc_mode=2500
     fi
 
-    local base_hw_opt=("-w" "3" "--status" "--status-timer=1")
+    # Флаг -D 2 форсирует запуск СТРОГО на GPU
+    local base_hw_opt=("-w" "3" "-D" "2" "--status" "--status-timer=1")
 
     local cracked_wifi
     cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
