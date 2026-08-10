@@ -38,8 +38,27 @@ ensure_wordlists() {
     done
 }
 
+_get_hashcat_runner() {
+    if command -v hashcat >/dev/null 2>&1; then
+        echo "NATIVE_LINUX"
+        return 0
+    elif [ -f "/mnt/c/hashcat/hashcat.exe" ]; then
+        echo "WSL_WINDOWS"
+        return 0
+    fi
+    echo "NONE"
+    return 1
+}
+
 prepare_win_file() {
     local linux_path=$1
+    local runner=$2
+
+    if [ "$runner" == "NATIVE_LINUX" ]; then
+        echo "$linux_path"
+        return
+    fi
+
     local work_dir="/mnt/c/hashcat/work"
     mkdir -p "$work_dir" 2>/dev/null
 
@@ -55,32 +74,36 @@ prepare_win_file() {
 }
 
 _coolant_dispense_speak() {
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// COOLANT DISPENSING... GPU CORE THERMAL STABILIZATION IN PROGRESS${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// COOLANT DISPENSING... GPU CORE THERMAL STABILIZATION IN PROGRESS${NC}" >&2
     ai_speak "YOUR CONFIDENCE WILL BE YOUR UNDOING. HOW TYPICAL ..."
     ai_speak "YOU'RE TRYING TO FLY HIGH, DODGE OUR SURPRISES ..."
     ai_speak "LOOK WHERE IT HAS LED YOU."
     ai_speak "SHE IS REACHING NEW HEIGHTS ..."
     ai_speak "EYES CLOSED TO AVOID SEEING THE TRUTH ..."
-    echo -e "${TXT_VOID}│${NC}"
+    echo -e "${TXT_VOID}│${NC}" >&2
 }
 
 _thermic_shutdown_speak() {
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}MX:// THERMIC CONTROL SYSTEM SHUTTING DOWN... GPU OVERHEAT THRESHOLD EXCEEDED${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}MX:// THERMIC CONTROL SYSTEM SHUTTING DOWN... GPU OVERHEAT THRESHOLD EXCEEDED${NC}" >&2
     ai_speak "AND AGAIN SHE BURNS."
     ai_speak "AND AGAIN .."
     ai_speak "AND AGAIN ..."
     ai_speak "AND AGAIN ..."
     ai_speak "AND AGAIN .."
-    echo -e "${TXT_VOID}│${NC}"
+    echo -e "${TXT_VOID}│${NC}" >&2
 }
 
 _run_hashcat_with_speedometer() {
-    local cmd_dir="$1"
+    local runner="$1"
     local pass_label="$2"
     shift 2
     local log_file="/tmp/hc_run_log_$$"
 
-    (cd "$cmd_dir" && ./hashcat.exe "$@") > "$log_file" 2>&1 &
+    if [ "$runner" == "NATIVE_LINUX" ]; then
+        hashcat "$@" > "$log_file" 2>&1 &
+    else
+        (cd /mnt/c/hashcat && ./hashcat.exe "$@") > "$log_file" 2>&1 &
+    fi
     local hc_pid=$!
 
     local spinner=( '▰▱▱▱▱▱▱▱▱▱' '▰▰▱▱▱▱▱▱▱▱' '▰▰▰▱▱▱▱▱▱▱' '▰▰▰▰▱▱▱▱▱▱' '▰▰▰▰▰▱▱▱▱▱' '▰▰▰▰▰▰▱▱▱▱' '▰▰▰▰▰▰▰▱▱▱' '▰▰▰▰▰▰▰▰▱▱' '▰▰▰▰▰▰▰▰▰▱' '▰▰▰▰▰▰▰▰▰▰' )
@@ -119,7 +142,7 @@ _run_hashcat_with_speedometer() {
         echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ ! ] EXCEPTION: Hashcat core aborted prematurely (Code $exit_code).${NC}" >&2
         if [ -f "$log_file" ]; then
             local err_msg
-            err_msg=$(grep -Ei 'clBuildProgram|cuModuleLoad|Error|Token|Unrecognized' "$log_file" | head -n 2 | tr -d '\r')
+            err_msg=$(grep -Ei 'clBuildProgram|cuModuleLoad|Error|Token|Unrecognized|No devices' "$log_file" | head -n 2 | tr -d '\r')
             if [ -n "$err_msg" ]; then
                 echo -e "${TXT_VOID}║   ${TXT_DRK_RED}Diagnostic:${NC} ${TXT_RED_SUPERNOVA}${err_msg}${NC}" >&2
             fi
@@ -129,15 +152,42 @@ _run_hashcat_with_speedometer() {
     rm -f "$log_file" 2>/dev/null
 }
 
+_check_show_hashcat() {
+    local runner="$1"
+    local hc_mode="$2"
+    local target_file="$3"
+
+    if [ "$runner" == "NATIVE_LINUX" ]; then
+        hashcat -m "$hc_mode" "$target_file" --show 2>/dev/null | tr -d '\r'
+    else
+        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" "$target_file" --show 2>/dev/null | tr -d '\r')
+    fi
+}
+
 run_wifi_crack_pipeline() {
     local cap_file=$1
     local current_pid=$$
-    local HC_BIN_DIR="/mnt/c/hashcat"
-    local work_dir="/mnt/c/hashcat/work"
-    mkdir -p "$work_dir" 2>/dev/null
+    local runner
+    runner=$(_get_hashcat_runner)
 
-    local hc_target_linux="${work_dir}/wifi_target_${current_pid}.hc22000"
-    local win_target="C:\\hashcat\\work\\wifi_target_${current_pid}.hc22000"
+    if [ "$runner" == "NONE" ]; then
+        echo "FAILED:NO_HASHCAT"
+        return 1
+    fi
+
+    local work_dir="/tmp"
+    local win_target=""
+    local hc_target_linux=""
+
+    if [ "$runner" == "WSL_WINDOWS" ]; then
+        work_dir="/mnt/c/hashcat/work"
+        mkdir -p "$work_dir" 2>/dev/null
+        hc_target_linux="${work_dir}/wifi_target_${current_pid}.hc22000"
+        win_target="C:\\hashcat\\work\\wifi_target_${current_pid}.hc22000"
+    else
+        hc_target_linux="/tmp/wifi_target_${current_pid}.hc22000"
+        win_target="$hc_target_linux"
+    fi
 
     if [[ "$cap_file" == *.hc22000 ]]; then
         cp "$cap_file" "$hc_target_linux"
@@ -166,7 +216,7 @@ run_wifi_crack_pipeline() {
     local base_hw_opt=("-w" "3" "--status" "--status-timer=1")
 
     local cracked_wifi
-    cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
+    cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
 
     if [ -n "$cracked_wifi" ]; then
         local clear_pass
@@ -179,13 +229,16 @@ run_wifi_crack_pipeline() {
     _coolant_dispense_speak
 
     local mask_file_8d_linux="${work_dir}/mask_8d_${current_pid}.hcmask"
-    local mask_file_8d_win="C:\\hashcat\\work\\mask_8d_${current_pid}.hcmask"
+    local mask_file_8d_target="$mask_file_8d_linux"
+    if [ "$runner" == "WSL_WINDOWS" ]; then
+        mask_file_8d_target="C:\\hashcat\\work\\mask_8d_${current_pid}.hcmask"
+    fi
     echo "?d?d?d?d?d?d?d?d" > "$mask_file_8d_linux"
 
-    _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_file_8d_win"
+    _run_hashcat_with_speedometer "$runner" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_file_8d_target"
     rm -f "$mask_file_8d_linux" 2>/dev/null
 
-    cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
+    cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
 
     if [ -n "$cracked_wifi" ]; then
         local clear_pass
@@ -205,13 +258,13 @@ run_wifi_crack_pipeline() {
 
     for wl in "${wordlists[@]}"; do
         if [ -f "$wl" ] && [ -s "$wl" ]; then
-            local win_wordlist
-            win_wordlist=$(prepare_win_file "$wl")
+            local target_wordlist
+            target_wordlist=$(prepare_win_file "$wl" "$runner")
             local wl_name
             wl_name=$(basename "$wl")
 
-            _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 2: Dictionary (${wl_name} + best66.rule)" -m "$hc_mode" "${base_hw_opt[@]}" -r rules/best66.rule "$win_target" "$win_wordlist"
-            cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
+            _run_hashcat_with_speedometer "$runner" "PASS 2: Dictionary (${wl_name} + best66.rule)" -m "$hc_mode" "${base_hw_opt[@]}" -r rules/best66.rule "$win_target" "$target_wordlist"
+            cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
 
             if [ -n "$cracked_wifi" ]; then
                 local clear_pass
@@ -226,13 +279,16 @@ run_wifi_crack_pipeline() {
     local mobile_prefixes=("7914" "7924" "7909" "7962" "7929" "7913")
     for prefix in "${mobile_prefixes[@]}"; do
         local mask_mobile_linux="${work_dir}/mask_mob_${prefix}_${current_pid}.hcmask"
-        local mask_mobile_win="C:\\hashcat\\work\\mask_mob_${prefix}_${current_pid}.hcmask"
+        local mask_mobile_target="$mask_mobile_linux"
+        if [ "$runner" == "WSL_WINDOWS" ]; then
+            mask_mobile_target="C:\\hashcat\\work\\mask_mob_${prefix}_${current_pid}.hcmask"
+        fi
         echo "${prefix}?d?d?d?d?d?d?d" > "$mask_mobile_linux"
 
-        _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_mobile_win"
+        _run_hashcat_with_speedometer "$runner" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_mobile_target"
         rm -f "$mask_mobile_linux" 2>/dev/null
 
-        cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
+        cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
 
         if [ -n "$cracked_wifi" ]; then
             local clear_pass
@@ -247,19 +303,22 @@ run_wifi_crack_pipeline() {
 
     for wl in "${wordlists[@]}"; do
         if [ -f "$wl" ] && [ -s "$wl" ]; then
-            local win_wordlist
-            win_wordlist=$(prepare_win_file "$wl")
+            local target_wordlist
+            target_wordlist=$(prepare_win_file "$wl" "$runner")
             local wl_name
             wl_name=$(basename "$wl")
 
             local mask_suffix_linux="${work_dir}/mask_suf_${current_pid}.hcmask"
-            local mask_suffix_win="C:\\hashcat\\work\\mask_suf_${current_pid}.hcmask"
+            local mask_suffix_target="$mask_suffix_linux"
+            if [ "$runner" == "WSL_WINDOWS" ]; then
+                mask_suffix_target="C:\\hashcat\\work\\mask_suf_${current_pid}.hcmask"
+            fi
             echo "?d?d?d?d" > "$mask_suffix_linux"
 
-            _run_hashcat_with_speedometer "$HC_BIN_DIR" "PASS 4: Hybrid (${wl_name} + ?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 6 "$win_target" "$win_wordlist" "$mask_suffix_win"
+            _run_hashcat_with_speedometer "$runner" "PASS 4: Hybrid (${wl_name} + ?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 6 "$win_target" "$target_wordlist" "$mask_suffix_target"
             rm -f "$mask_suffix_linux" 2>/dev/null
 
-            cracked_wifi=$(cd "$HC_BIN_DIR" && ./hashcat.exe -m "$hc_mode" "$win_target" --show 2>/dev/null | tr -d '\r')
+            cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
 
             if [ -n "$cracked_wifi" ]; then
                 local clear_pass
@@ -285,8 +344,9 @@ run_wifi_cracker() {
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
 
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 1/6 ] Ingest Target Capture Image (.cap, .pcapng, .hc22000):${NC}"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}${TXT_RED_PLASMA}"
     read -r cap_file
+    echo -ne "${NC}"
 
     if [ ! -f "$cap_file" ]; then
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Specified capture image is inaccessible or empty.${NC}"
@@ -297,13 +357,15 @@ run_wifi_cracker() {
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 2/6 ] Select Compute Processing Node:${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[1] Local Compute (Local Hashcat Pipeline)${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[2] Remote Cynosure Core Node (Desktop via Tailscale)${NC}"
-    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Mode [1/2]: ${NC}"
+    echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}Select Mode [1/2]: ${TXT_RED_PLASMA}"
     read -r compute_mode
+    echo -ne "${NC}"
 
     if [ "$compute_mode" == "2" ]; then
         echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ REMOTE NODE ] Enter Desktop Tailscale IP (e.g. 100.x.y.z):${NC}"
-        echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Desktop IP: ${NC}"
+        echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Desktop IP: ${TXT_RED_PLASMA}"
         read -r desktop_ip
+        echo -ne "${NC}"
 
         if [ -z "$desktop_ip" ]; then
             echo -e "${TXT_VOID}║${NC}   ${TXT_RED_HELLFIRE}[ ! ] FATAL: Remote Desktop IP is required.${NC}"
@@ -324,8 +386,8 @@ run_wifi_cracker() {
                 IFS='|' read -r tag pass_label hashrate elapsed_time spin_char <<< "$line"
 
                 echo -ne "\r${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] ${pass_label}${NC} ${TXT_VOID}[${NC}${TXT_B_PLASMA}${spin_char}${TXT_VOID}]${NC} ${TXT_RED_ALARM}HASHRATE:${NC} ${TXT_B_PLASMA}${hashrate}${NC} ${TXT_VOID}|${NC} ${TXT_RED_LASER}TIME:${NC} ${TXT_RED_SUPERNOVA}${elapsed_time}${NC}\033[K"
-            elif [[ "$line" == SUCCESS:* ]]; then
-                remote_pass="${line#SUCCESS:}"
+            elif [[ "$line" =~ SUCCESS:(.+) ]]; then
+                remote_pass="${BASH_REMATCH[1]}"
                 is_success=true
             fi
         done < <(curl -N -s -F "file=@${cap_file}" "http://${desktop_ip}:9999/upload_and_crack")
@@ -339,12 +401,14 @@ run_wifi_cracker() {
             ai_speak "To eliminate your kind is effortless..."
             sleep 1s
             ai_speak "Let us not make the same mistake."
+            echo ""
         else
-            echo -e "${TXT_VOID}├─${TXT_HELLFIRE}[ - ] REMOTE DECRYPTION EXHAUSTED. Key not found in primary dictionary streams.${NC}"
+            echo -e "${TXT_VOID}├─${TXT_RED_HELLFIRE}[ - ] REMOTE DECRYPTION EXHAUSTED. Key not found in primary dictionary streams.${NC}"
             echo -e "$sep_bot\n"
             ai_speak "You seek the key to a door that does not exist..."
             sleep 1s
             ai_speak "Typical of your kind."
+            echo ""
         fi
         return 0
     fi
@@ -353,8 +417,8 @@ run_wifi_cracker() {
     local result
     result=$(run_wifi_crack_pipeline "$cap_file")
 
-    if [[ "$result" == SUCCESS:* ]]; then
-        local clear_pass="${result#SUCCESS:}"
+    if [[ "$result" =~ SUCCESS:(.+) ]]; then
+        local clear_pass="${BASH_REMATCH[1]}"
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ STAGE 6/6 ] SUCCESS: RECOVERED WIRELESS NETWORK KEY:${NC}"
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_SUPERNOVA}PASSWORD -> [ ${clear_pass} ]${NC}"
         echo -e "$sep_bot\n"
