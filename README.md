@@ -27,12 +27,22 @@
 | **<font color="#ff5a5a">Airwave Recon</font>** | `-S` | Беспроводной спектральный сканер (`aircrack-ng` / `airodump-ng`), автоматическое управление мощностью адаптера (20 dBm) и захват Handshake/PMKID. |
 | **<font color="#ff5a5a">Wireless Decrypter</font>** | `-W` | 6-этапный конвейер взлома WPA2/WPA3 (8-значные маски, словари с правилами `best66`, мобильные префиксы, гибридные атаки). |
 | **<font color="#ff5a5a">Shadow Listener</font>** | `-l` | Сервер приемника вычислительного узла (Python HTTP REST API на порту `9999`) для удаленной выгрузки дампа с Termux/ноутбука на GPU-риг. |
+| **<font color="#ff5a5a">Bind Forge</font>** | `-k` / `-K` | KOTH: генерация bind-шеллов (PHP, bash `/dev/tcp`, nc, socat, python3) для сервисов без маршрута обратно. |
+| **<font color="#ff5a5a">Capture Engine</font>** | `-G` | Захват холма **своим** токеном, ответ `captured/protected`, запечатывание seed для автовосстановления. |
+| **<font color="#ff5a5a">Leader of the Pack</font>** | `-Y` | Watchdog-флок: 8 независимых arm'ов, cron / cron.d / cron.daily / spool, systemd-таймер, `ld.so.preload`, кервер по pid. |
+| **<font color="#ff5a5a">Shadow Presence</font>** | `-E` | `hide.so` (readdir/open/readdir64), `net.so`, затирание логов и истории. |
+| **<font color="#ff5a5a">Troll Sabotage</font>** | `-T` | Обратная порча инструментария (`chmod o-x`, alias-замедлители), гайд по `disable_functions`. |
+| **<font color="#ff5a5a">Wall</font>** | `-Z` | Ротация паролей, `authorized_keys`, iptables-цепочка `BLK_IN`, `sudoers.d`. |
+| **<font color="#ff5a5a">Ring-3 Hook</font>** | `-o` | Разведка и хук бинаря захвата: `map`, `uid` (geteuid→0), `token` (подмена argv в `execve`). |
+| **<font color="#ff5a5a">Post-Root Check</font>** | `-C` | SUID/SGID, capabilities, cron, writable `/etc`, `/proc/1/environ`, поиск флагов. |
 
 ---
 
 ## <font color="#ff0037">📐 MX:// DIRECTORY ARCHITECTURE</font>
 
 ![Architecture Tree](assets/tree.svg)
+
+Дополнительно для формата King of the Hill: `king/` (бойстанция), `king/README.md` (руководство и плейбук), `assets/koth_terminal.svg` (превью).
 
 ---
 
@@ -67,7 +77,7 @@ cd avoidme12-project-blackwall
 
 2. **Настройка прав доступа:**
 ```bash
-chmod +x blackwall.sh core/*.sh daemons/*.sh
+chmod +x blackwall.sh core/*.sh daemons/*.sh king/*.sh
 ```
 
 ---
@@ -99,6 +109,21 @@ sudo ./blackwall.sh -t <IP> [ОПЦИИ]
 * **<font color="#ff5a5a">Запуск автономного узла вычислений (Shadow Listener на GPU-сервере):</font>**
   ```bash
   sudo ./blackwall.sh -l
+  ```
+
+* **<font color="#ff5a5a">King of the Hill: полный цикл захвата (bind → capture → hydra → shadow → wall):</font>**
+  ```bash
+  sudo ./blackwall.sh -k -t 10.10.10.50 -p 4242
+  sudo ./blackwall.sh -G route -t 10.10.10.50 --token $TEAM_TOKEN
+  sudo ./blackwall.sh -Y -t 10.10.10.50 --token $TEAM_TOKEN
+  sudo ./blackwall.sh -E -t 10.10.10.50
+  sudo ./blackwall.sh -Z -t 10.10.10.50 --pubkey ~/.ssh/id_ed25519.pub
+  ```
+
+* **<font color="#ff5a5a">KOTH-справка и статус флока:</font>**
+  ```bash
+  ./blackwall.sh -H
+  ./blackwall.sh -Y --status
   ```
 
 ---

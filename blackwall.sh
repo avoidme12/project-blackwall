@@ -21,6 +21,17 @@ source "${BASE_DIR}/daemons/wifi_recon.sh"
 source "${BASE_DIR}/daemons/ctf_boil.sh"
 source "${BASE_DIR}/daemons/fast_audit.sh"
 
+source "${BASE_DIR}/king/payloads.sh"
+source "${BASE_DIR}/king/capture.sh"
+source "${BASE_DIR}/king/check.sh"
+source "${BASE_DIR}/king/hydra.sh"
+source "${BASE_DIR}/king/hydra_install.sh"
+source "${BASE_DIR}/king/shadow.sh"
+source "${BASE_DIR}/king/preload.sh"
+source "${BASE_DIR}/king/troll.sh"
+source "${BASE_DIR}/king/wall.sh"
+source "${BASE_DIR}/king/koth.sh"
+
 if (( EUID != 0 )) && [ -z "$TERMUX_VERSION" ]; then
     echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
     exit 1
@@ -40,6 +51,21 @@ RUN_LISTEN=0
 RUN_WIFI_SCAN=0
 RUN_BOIL=0
 RUN_AUDIT=0
+RUN_KOTH=0
+RUN_BIND=0
+RUN_CAPTURE=0
+RUN_HYDRA=0
+RUN_HYDRA_HEAL=0
+RUN_SHADOW=0
+RUN_TROLL=0
+RUN_TROLL_RESTORE=0
+RUN_WALL=0
+RUN_CHECK=0
+RUN_KOTH_HELP=0
+RUN_HOOK=0
+HOOK_MODE="map"
+FILE_RUN=0
+KOTH_TRESTORE=0
 
 show_help() {
     echo -e "${TXT_RED_PLASMA}PROJECT BLACKWALL v1.0${NC}"
@@ -60,6 +86,26 @@ show_help() {
     echo -e "  -q         Skip art"
     echo -e "  -a         Run all modules"
     echo -e "  -h         Help"
+    echo -e "\n${TXT_RED_PLASMA}KING OF THE HILL // BATTLE STATION${NC}"
+    echo -e "  -K         Full KOTH station (? for module manual)"
+    echo -e "  -k         Bind shell forge only (PHP / bash / nc / socat / python)"
+    echo -e "  -G <C>     Capture the hill via <C>, seal seed (needs --host --port --token)"
+    echo -e "  -Y         Hydra: watchdog flock + cron + systemd + loader persistence"
+    echo -e "             --heal re-arms, --status prints the flock map"
+    echo -e "  -E         Shadow: hide the flock, wipe logs and shell history"
+    echo -e "  -T         Troll: degrade competitor tooling (--restore undoes it)"
+    echo -e "  -Z         Wall: rotate creds, pin your key, seal the firewall"
+    echo -e "  -C         Post-root checklist (suid, caps, cron, writable, flags)"
+    echo -e "  -o <MODE>  Capture-binary hook: map | uid | token"
+    echo -e "\n${TXT_RED_PLASMA}KOTH OPTIONS${NC}"
+    echo -e "  --host <IP>         Hill IP (VPN side)"
+    echo -e "  --port <PORT>       Bind port (default 4242)"
+    echo -e "  --token <TOKEN>     Your team token (or TEAM_TOKEN env)"
+    echo -e "  --key <KEY>         Team key / capture key"
+    echo -e "  --payload-path <P>  Path of the deployed payload on the hill"
+    echo -e "  --pubkey <FILE>     SSH public key for Wall"
+    echo -e "  --tool <NAME>       Tool to sabotage for Troll"
+    echo -e "  -H                  Full KOTH help"
     exit 1
 }
 
@@ -90,7 +136,11 @@ clean_exit() {
 
 trap clean_exit INT TERM
 
-while getopts "t:n:repqahwdcWSlbB" opt; do
+FILE_RUN=0
+KOTH_OPTS=("$@")
+
+
+while getopts ":t:n:repqahwdcWSlbBKkG:YETZCHo:H" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
@@ -106,16 +156,87 @@ while getopts "t:n:repqahwdcWSlbB" opt; do
         S ) RUN_WIFI_SCAN=1 ;;
         b ) RUN_BOIL=1 ;;
         B ) RUN_AUDIT=1 ;;
+        K ) RUN_KOTH=1 ;;
+        k ) RUN_KOTH=1; RUN_BIND=1; KOTH_MODE="bind" ;;
+        G ) RUN_KOTH=1; RUN_CAPTURE=1; KOTH_MODE="capture"; CAPTURE_CONSOLE="$OPTARG" ;;
+        Y ) RUN_KOTH=1; RUN_HYDRA=1; KOTH_MODE="hydra" ;;
+        E ) RUN_KOTH=1; RUN_SHADOW=1; KOTH_MODE="shadow" ;;
+        T ) RUN_KOTH=1; RUN_TROLL=1; KOTH_MODE="troll" ;;
+        Z ) RUN_KOTH=1; RUN_WALL=1; KOTH_MODE="wall" ;;
+        C ) RUN_KOTH=1; RUN_CHECK=1; KOTH_MODE="check" ;;
+        o ) RUN_KOTH=1; RUN_HOOK=1; KOTH_MODE="hook"; HOOK_MODE="$OPTARG" ;;
+        H ) RUN_KOTH=1; RUN_KOTH_HELP=1; KOTH_MODE="manual" ;;
         a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
         h ) show_help ;;
-        \? ) show_help ;;
+        : ) echo -e "${TXT_RED_HELLFIRE}[!] OPTION -${OPTARG} NEEDS A VALUE${NC}"; show_help ;;
+        \? )
+            case "${OPTARG:-}" in
+                -*) break ;;
+                *) show_help ;;
+            esac
+            ;;
     esac
 done
 
-if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )) && (( RUN_LISTEN == 0 )) && (( RUN_WIFI_SCAN == 0 )) && (( RUN_BOIL == 0 )) && (( RUN_AUDIT == 0 )); then
+kl=0
+while (( kl < ${#KOTH_OPTS[@]} )); do
+    kk="${KOTH_OPTS[$kl]}"
+    kv="${KOTH_OPTS[$((kl + 1))]:-}"
+    case "$kk" in
+        --host|--target) HILL_HOST="$kv"; kl=$((kl + 2)) ;;
+        --port|--bind-port) BIND_PORT="$kv"; kl=$((kl + 2)) ;;
+        --token|--team-token) KOTH_TOKEN="$kv"; kl=$((kl + 2)) ;;
+        --key|--team-key) KOTH_KEY="$kv"; kl=$((kl + 2)) ;;
+        --payload-path) PAYLOAD_PATH="$kv"; kl=$((kl + 2)) ;;
+        --pubkey) PUB_KEY="$kv"; kl=$((kl + 2)) ;;
+        --tool) TROLL_TOOL="$kv"; kl=$((kl + 2)) ;;
+        --model|--loop-seconds) HYDRA_TICK="$kv"; kl=$((kl + 2)) ;;
+        --suffix) KOTH_SUFFIX="$kv"; kl=$((kl + 2)) ;;
+        --force-user) WALL_FORCE_USER=1; kl=$((kl + 1)) ;;
+        --force-root) WALL_FORCE_ROOT=1; kl=$((kl + 1)) ;;
+        --seed) KOTH_SEED=1; kl=$((kl + 1)) ;;
+        --heal) FILE_RUN=1; kl=$((kl + 1)) ;;
+        --status) FILE_RUN=2; kl=$((kl + 1)) ;;
+        --restore) KOTH_TRESTORE=1; kl=$((kl + 1)) ;;
+        --host=*) HILL_HOST="${kk#*=}"; kl=$((kl + 1)) ;;
+        --port=*|--bind-port=*) BIND_PORT="${kk#*=}"; kl=$((kl + 1)) ;;
+        --token=*|--team-token=*) KOTH_TOKEN="${kk#*=}"; kl=$((kl + 1)) ;;
+        --key=*|--team-key=*) KOTH_KEY="${kk#*=}"; kl=$((kl + 1)) ;;
+        --payload-path=*) PAYLOAD_PATH="${kk#*=}"; kl=$((kl + 1)) ;;
+        --pubkey=*) PUB_KEY="${kk#*=}"; kl=$((kl + 1)) ;;
+        --tool=*) TROLL_TOOL="${kk#*=}"; kl=$((kl + 1)) ;;
+        *) kl=$((kl + 1)) ;;
+    esac
+done
+
+if (( KOTH_HELP == 1 )); then
+    echo -e "\n${TXT_RED_PLASMA}MX:// KING OF THE HILL // FULL MANUAL${NC}"
+    echo -e "${TXT_VOID}──────────────────────────────────────────────────────────────────────────────${NC}"
+    echo -e "${TXT_RED_SUPERNOVA}MODULES${NC}"
+    echo -e "${TXT_RED_MAGMA}  -K  bind forge      -k  payloads only     -G  capture + seed${NC}"
+    echo -e "${TXT_RED_MAGMA}  -Y  hydra flock     -E  shadow + wipe    -T  troll${NC}"
+    echo -e "${TXT_RED_MAGMA}  -Z  wall            -C  post-root check  -o  ring-3 hook${NC}"
+    echo -e "${TXT_RED_SUPERNOVA}OPTIONS${NC}"
+    echo -e "${TXT_RED_MAGMA}  --host <IP> --port <PORT> --token <T> --key <K> --payload-path <P>${NC}"
+    echo -e "${TXT_RED_MAGMA}  --pubkey <FILE> --tool <NAME> --heal --status --restore --seed${NC}"
+    echo -e "${TXT_RED_MAGMA}  --force-user --force-root${NC}"
+    echo -e "${TXT_RED_SUPERNOVA}PLAYBOOK${NC}"
+    echo -e "${TXT_CORE}  1.${NC} ${TXT_RED_MAGMA}-k -t <hill>            forge bind shells from a PHP/vector${NC}"
+    echo -e "${TXT_CORE}  2.${NC} ${TXT_RED_MAGMA}-G route -t <hill> --token T   capture with YOUR token${NC}"
+    echo -e "${TXT_CORE}  3.${NC} ${TXT_RED_MAGMA}-Y -t <hill> --token T  flock: keeper, cron, timer, loader${NC}"
+    echo -e "${TXT_CORE}  4.${NC} ${TXT_RED_MAGMA}-E -t <hill>             hide the flock, wipe trails${NC}"
+    echo -e "${TXT_CORE}  5.${NC} ${TXT_RED_MAGMA}-Z -t <hill> --pubkey k  wall: creds, keys, iptables${NC}"
+    echo -e "${TXT_CORE}  6.${NC} ${TXT_RED_MAGMA}-T -t <hill> --tool curl  troll rivals, then -o map${NC}"
+    echo ""
+    echo -e "${TXT_VOID}${ITLC}\"It is impossible to be sure of the future. It has many enemies, and they are without number.\"${NC}"
+    exit 0
+fi
+
+if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )) && (( RUN_LISTEN == 0 )) && (( RUN_WIFI_SCAN == 0 )) && (( RUN_BOIL == 0 )) && (( RUN_AUDIT == 0 )) && (( RUN_KOTH == 0 )); then
     echo -e "${TXT_VOID}[!] ERROR: TARGET IS NULL${NC}"
     show_help
 fi
+
 
 STATE[target_ip]="$TARGET"
 
@@ -164,6 +285,23 @@ fi
 
 if (( RUN_AUDIT == 1 )); then
     run_fast_audit
+fi
+
+if (( RUN_KOTH == 1 )); then
+    if [ -n "$TARGET" ] && [ -z "$HILL_HOST" ]; then
+        HILL_HOST="$TARGET"
+    fi
+    if [ -n "$KOTH_TOKEN" ]; then
+        STATE[kw_team_token]="$KOTH_TOKEN"
+    fi
+    if [ -n "$KOTH_KEY" ] && [ -z "$CAPTURE_KEY" ]; then
+        CAPTURE_KEY="$KOTH_KEY"
+    fi
+    if [ -z "$CAPTURE_KEY" ]; then
+        CAPTURE_KEY="$(printf '%s' "${KOTH_TOKEN:-blk}" | sha1sum 2>/dev/null | cut -c1-12)"
+    fi
+    king_main
+    exit 0
 fi
 
 if (( RUN_PAYLOADS == 1 )); then
