@@ -31,6 +31,7 @@ source "${BASE_DIR}/king/preload.sh"
 source "${BASE_DIR}/king/troll.sh"
 source "${BASE_DIR}/king/wall.sh"
 source "${BASE_DIR}/king/koth.sh"
+source "${BASE_DIR}/king/c2.sh"
 
 if (( EUID != 0 )) && [ -z "$TERMUX_VERSION" ]; then
     echo -e "${TXT_RED_HELLFIRE}${ITLC}It is you who should be following orders, not I.\n\n${NC}"
@@ -63,9 +64,29 @@ RUN_WALL=0
 RUN_CHECK=0
 RUN_KOTH_HELP=0
 RUN_HOOK=0
+RUN_C2=0
 HOOK_MODE="map"
 FILE_RUN=0
 KOTH_TRESTORE=0
+C2_MODE=""
+C2_HOST=""
+C2_PORT="8443"
+C2_BIND="0.0.0.0"
+C2_START_MODULES="recon"
+C2_POLL=20
+C2_JITTER=8
+C2_MTLS=0
+C2_FORCE=0
+C2_DRY_RUN=0
+C2_URL=""
+C2_CMD=""
+C2_SESSION=""
+C2_MODULE=""
+C2_PATH=""
+C2_ARG=""
+C2_PASSTHROUGH=0
+C2_ARGS=()
+C2_ENV=()
 
 show_help() {
     echo -e "${TXT_RED_PLASMA}PROJECT BLACKWALL v1.0${NC}"
@@ -97,6 +118,9 @@ show_help() {
     echo -e "  -Z         Wall: rotate creds, pin your key, seal the firewall"
     echo -e "  -C         Post-root checklist (suid, caps, cron, writable, flags)"
     echo -e "  -o <MODE>  Capture-binary hook: map | uid | token"
+    echo -e "\n${TXT_RED_PLASMA}HTTPS C2 // STAGE-0${NC}"
+    echo -e "  -X <MODE>  Modular C2: build | server | ctl | fingerprint | deploy"
+    echo -e "             TLS pin + HMAC + sealed in-memory modules"
     echo -e "\n${TXT_RED_PLASMA}KOTH OPTIONS${NC}"
     echo -e "  --host <IP>         Hill IP (VPN side)"
     echo -e "  --port <PORT>       Bind port (default 4242)"
@@ -140,7 +164,7 @@ FILE_RUN=0
 KOTH_OPTS=("$@")
 
 
-while getopts ":t:n:repqahwdcWSlbBKkG:YETZCHo:H" opt; do
+while getopts ":t:n:repqahwdcWSlbBKkG:YETZCHo:HX:" opt; do
     case ${opt} in
         t ) TARGET=$OPTARG ;;
         r ) RUN_RECON=1 ;;
@@ -166,6 +190,7 @@ while getopts ":t:n:repqahwdcWSlbBKkG:YETZCHo:H" opt; do
         C ) RUN_KOTH=1; RUN_CHECK=1; KOTH_MODE="check" ;;
         o ) RUN_KOTH=1; RUN_HOOK=1; KOTH_MODE="hook"; HOOK_MODE="$OPTARG" ;;
         H ) RUN_KOTH=1; RUN_KOTH_HELP=1; KOTH_MODE="manual" ;;
+        X ) RUN_C2=1; C2_MODE="$OPTARG" ;;
         a ) RUN_RECON=1; RUN_PAYLOADS=1; RUN_BRUTE=1; RUN_WEB=1; RUN_DELIVERY=1; RUN_CRACK=1 ;;
         h ) show_help ;;
         : ) echo -e "${TXT_RED_HELLFIRE}[!] OPTION -${OPTARG} NEEDS A VALUE${NC}"; show_help ;;
@@ -190,6 +215,24 @@ while (( kl < ${#KOTH_OPTS[@]} )); do
         --payload-path) PAYLOAD_PATH="$kv"; kl=$((kl + 2)) ;;
         --pubkey) PUB_KEY="$kv"; kl=$((kl + 2)) ;;
         --tool) TROLL_TOOL="$kv"; kl=$((kl + 2)) ;;
+        --c2-host) C2_HOST="$kv"; kl=$((kl + 2)) ;;
+        --c2-port) C2_PORT="$kv"; kl=$((kl + 2)) ;;
+        --c2-bind) C2_BIND="$kv"; kl=$((kl + 2)) ;;
+        --c2-url) C2_URL="$kv"; kl=$((kl + 2)) ;;
+        --c2-start|--c2-modules) C2_START_MODULES="$kv"; kl=$((kl + 2)) ;;
+        --c2-poll) C2_POLL="$kv"; kl=$((kl + 2)) ;;
+        --c2-jitter) C2_JITTER="$kv"; kl=$((kl + 2)) ;;
+        --c2-env) C2_ENV+=("$kv"); kl=$((kl + 2)) ;;
+        --c2-allow-ip) C2_ALLOW_IP="$kv"; kl=$((kl + 2)) ;;
+        --c2-cmd) C2_CMD="$kv"; kl=$((kl + 2)) ;;
+        --c2-session) C2_SESSION="$kv"; kl=$((kl + 2)) ;;
+        --c2-module) C2_MODULE="$kv"; kl=$((kl + 2)) ;;
+        --c2-path) C2_PATH="$kv"; kl=$((kl + 2)) ;;
+        --c2-arg) C2_ARG="$kv"; kl=$((kl + 2)) ;;
+        --c2-mtls) C2_MTLS=1; kl=$((kl + 1)) ;;
+        --c2-force) C2_FORCE=1; kl=$((kl + 1)) ;;
+        --c2-dry-run) C2_DRY_RUN=1; kl=$((kl + 1)) ;;
+        --) C2_PASSTHROUGH=1; kl=$((kl + 1)) ;;
         --model|--loop-seconds) HYDRA_TICK="$kv"; kl=$((kl + 2)) ;;
         --suffix) KOTH_SUFFIX="$kv"; kl=$((kl + 2)) ;;
         --force-user) WALL_FORCE_USER=1; kl=$((kl + 1)) ;;
@@ -205,7 +248,21 @@ while (( kl < ${#KOTH_OPTS[@]} )); do
         --payload-path=*) PAYLOAD_PATH="${kk#*=}"; kl=$((kl + 1)) ;;
         --pubkey=*) PUB_KEY="${kk#*=}"; kl=$((kl + 1)) ;;
         --tool=*) TROLL_TOOL="${kk#*=}"; kl=$((kl + 1)) ;;
-        *) kl=$((kl + 1)) ;;
+        --c2-host=*) C2_HOST="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-port=*) C2_PORT="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-bind=*) C2_BIND="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-url=*) C2_URL="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-start=*|--c2-modules=*) C2_START_MODULES="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-poll=*) C2_POLL="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-jitter=*) C2_JITTER="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-env=*) C2_ENV+=("${kk#*=}"); kl=$((kl + 1)) ;;
+        --c2-allow-ip=*) C2_ALLOW_IP="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-cmd=*) C2_CMD="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-session=*) C2_SESSION="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-module=*) C2_MODULE="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-path=*) C2_PATH="${kk#*=}"; kl=$((kl + 1)) ;;
+        --c2-arg=*) C2_ARG="${kk#*=}"; kl=$((kl + 1)) ;;
+        *) if (( C2_PASSTHROUGH == 1 )); then C2_ARGS+=("$kk"); fi; kl=$((kl + 1)) ;;
     esac
 done
 
@@ -216,6 +273,7 @@ if (( KOTH_HELP == 1 )); then
     echo -e "${TXT_RED_MAGMA}  -K  bind forge      -k  payloads only     -G  capture + seed${NC}"
     echo -e "${TXT_RED_MAGMA}  -Y  hydra flock     -E  shadow + wipe    -T  troll${NC}"
     echo -e "${TXT_RED_MAGMA}  -Z  wall            -C  post-root check  -o  ring-3 hook${NC}"
+    echo -e "${TXT_RED_MAGMA}  -X  modular HTTPS C2 (build | server | ctl | deploy)${NC}"
     echo -e "${TXT_RED_SUPERNOVA}OPTIONS${NC}"
     echo -e "${TXT_RED_MAGMA}  --host <IP> --port <PORT> --token <T> --key <K> --payload-path <P>${NC}"
     echo -e "${TXT_RED_MAGMA}  --pubkey <FILE> --tool <NAME> --heal --status --restore --seed${NC}"
@@ -232,7 +290,7 @@ if (( KOTH_HELP == 1 )); then
     exit 0
 fi
 
-if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )) && (( RUN_LISTEN == 0 )) && (( RUN_WIFI_SCAN == 0 )) && (( RUN_BOIL == 0 )) && (( RUN_AUDIT == 0 )) && (( RUN_KOTH == 0 )); then
+if [ -z "$TARGET" ] && (( RUN_CRACK == 0 )) && (( RUN_WIFI == 0 )) && (( RUN_LISTEN == 0 )) && (( RUN_WIFI_SCAN == 0 )) && (( RUN_BOIL == 0 )) && (( RUN_AUDIT == 0 )) && (( RUN_KOTH == 0 )) && (( RUN_C2 == 0 )); then
     echo -e "${TXT_VOID}[!] ERROR: TARGET IS NULL${NC}"
     show_help
 fi
@@ -249,10 +307,12 @@ if [ -n "$MACHINE_NAME" ]; then
     fi
 fi
 
-echo -e "${TXT_CRIMSON}${ITLC}Are you even capable of using me? A rhetorical question, that was.\n\n${NC}"
+if (( RUN_C2 == 0 )) || { [ "$C2_MODE" != "ctl" ] && [ "$C2_MODE" != "fingerprint" ]; }; then
+    echo -e "${TXT_CRIMSON}${ITLC}Are you even capable of using me? A rhetorical question, that was.\n\n${NC}"
 
-if (( SKIP_ART == 0 )); then
-     render_blackwall
+    if (( SKIP_ART == 0 )); then
+         render_blackwall
+    fi
 fi
 
 if (( RUN_RECON == 1 )); then
@@ -285,6 +345,11 @@ fi
 
 if (( RUN_AUDIT == 1 )); then
     run_fast_audit
+fi
+
+if (( RUN_C2 == 1 )); then
+    c2_main
+    exit 0
 fi
 
 if (( RUN_KOTH == 1 )); then

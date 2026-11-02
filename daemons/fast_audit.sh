@@ -2,7 +2,7 @@
 
 run_fast_audit() {
     local sep="${TXT_VOID}╓───${TXT_B_ALARM}[ MX:// RAPID LOCAL SYSTEM AUDITOR (FIRST MINUTE) ]${TXT_VOID}────────────────╖${NC}"
-    local sep_bot="${TXT_}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
+    local sep_bot="${TXT_VOID}╙──────────────────────────────────────────────────────────────────────────────✆${NC}"
 
     echo -e "\n$sep"
     echo -e "${TXT_VOID}║${NC}   ${TXT_RED_PLASMA}Copy and run this command directly in remote terminal to find quick wins:${NC}"
@@ -13,4 +13,5 @@ run_fast_audit() {
     echo -e "${TXT_VOID}├─${TXT_SCARLET}[ Quick Audit One-Liner ]: ${NC}"
     echo -e "${TXT_B_LASER}${cmd}${NC}"
     echo -e "$sep_bot\n"
+    echo -e "${TXT_VOID}${ITLC}\"The first minute is the only minute that matters.\"${NC}\n"
 }

